@@ -1,4 +1,4 @@
-System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/imgui_memory_editor"], function (exports_1, context_1) {
+System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/imgui_memory_editor", "./test"], function (exports_1, context_1) {
     "use strict";
     var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
         return new (P || (P = Promise))(function (resolve, reject) {
@@ -8,7 +8,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             step((generator = generator.apply(thisArg, _arguments || [])).next());
         });
     };
-    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration;
+    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, upload_images;
     var __moduleName = context_1 && context_1.id;
     function LoadArrayBuffer(url) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -82,7 +82,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 canvas.style.bottom = "0px";
                 canvas.style.width = "100%";
                 canvas.style.height = "100%";
-                ImGui_Impl.Init(canvas);
+                ImGui_Impl.Init(canvas);                
             }
             else {
                 ImGui_Impl.Init(null);
@@ -104,6 +104,18 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         // Start the Dear ImGui frame
         ImGui_Impl.NewFrame(time);
         ImGui.NewFrame();
+
+
+
+        // const Http = new XMLHttpRequest();
+        // const url='https://jsonplaceholder.typicode.com/posts';
+        // Http.open("GET", url);
+        // Http.send();
+        // Http.onreadystatechange=(e)=>{
+        //     console.log(Http.responseText)
+        // }
+
+
         // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         if (!done && show_demo_window) {
             done = /*ImGui.*/ imgui_demo_1.ShowDemoWindow((value = show_demo_window) => show_demo_window = value);
@@ -137,7 +149,52 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             ImGui.Text(`Total allocated space (uordblks):      ${mi.uordblks}`);
             ImGui.Text(`Total free space (fordblks):           ${mi.fordblks}`);
             // ImGui.Text(`Topmost releasable block (keepcost):   ${mi.keepcost}`);
-            if (ImGui.ImageButton(image_gl_texture, new imgui_js_1.ImVec2(48, 48))) {
+
+            var screen_pos = ImGui.GetCursorScreenPos();
+            ImGui.SetCursorScreenPos(ImGui.GetCursorScreenPos());
+
+            if (screen_pos == screen_pos) {
+                if (image_gl_texture) {
+                    const gl = ImGui_Impl.gl;
+
+
+                    var x = ImGui.GetIO().MousePos.x-screen_pos.x;
+                    var y = ImGui.GetIO().MousePos.y-screen_pos.y;
+
+                    var framebuffer = gl.createFramebuffer();
+                    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+                    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, image_gl_texture, 0);
+
+                    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE)
+                    {
+                        var sTextureSize = 512 * 512 * 4;    // r, g, b, a
+                        var pixels2 = new Uint8Array( sTextureSize );
+                        gl.readPixels( 0, 0, 512, 512, gl.RGBA, gl.UNSIGNED_BYTE, pixels2 );
+
+                        for (var i=y-4; i<y+4; i++) {
+                            for (var j=x-4; j<x+4; j++) {
+                                if (i<=0 || i>=512 || j<0 || j>= 512)
+                                    continue;
+                                var idx = i*512*4+j*4;
+                                pixels2[idx+0] = 200;
+                                pixels2[idx+1] = 0;
+                                pixels2[idx+2] = 0;
+                            }
+                        }
+
+                        // upload changes
+                        gl.bindTexture(gl.TEXTURE_2D, image_gl_texture);
+                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 
+                                      512, 512, 0,
+                                      gl.RGBA, gl.UNSIGNED_BYTE, pixels2);
+
+                    }
+
+                    gl.deleteFramebuffer(framebuffer);
+                } 
+            }
+
+            if (ImGui.ImageButton(image_gl_texture, new imgui_js_1.ImVec2(512, 512))) {
                 // show_demo_window = !show_demo_window;
                 image_url = image_urls[(image_urls.indexOf(image_url) + 1) % image_urls.length];
                 if (image_element) {
@@ -164,8 +221,54 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             if (ImGui.Button("Movie Window")) {
                 show_movie_window = true;
             }
-            if (show_movie_window)
+
+            if (ImGui.Button("Upload Images")) {
+                upload_images = !upload_images;
+            }
+
+            if (upload_images) {
+                const gl = ImGui_Impl.gl;
+                gl.canvas.style.left = "100px";
+                document.getElementById('picField').onchange = function (evt) {
+                    var tgt = evt.target || window.event.srcElement,
+                        files = tgt.files;
+
+                    // FileReader support
+                    if (FileReader && files && files.length) {
+                        var fr = new FileReader();
+                        fr.readAsArrayBuffer(files[0]);
+                        
+                        const Http = new XMLHttpRequest();
+                        const url='http://192.168.1.42:8094/annotator_supreme/annotation/1';
+                        Http.open("POST", url, true);
+                        
+                        var formData = new FormData();
+                        formData.append("image", files[0]);
+                        // Http.setRequestHeader("Content-Type", fr.type);
+                        Http.send(formData);
+                        Http.onreadystatechange=(e)=>{
+                            console.log(Http.responseText)
+                            upload_images = false;
+                            gl.canvas.style.left = "0px";
+                        }
+
+                        console.log(fr);
+                        console.log(files[0]);
+                    }
+
+                    // Not supported
+                    else {
+                        // fallback -- perhaps submit the input to an iframe and temporarily store
+                        // them on the server until the user's session ends.
+                    }
+                }
+            } else {
+                const gl = ImGui_Impl.gl;
+                gl.canvas.style.left = "0px";
+            }
+            if (show_movie_window) {
                 ShowMovieWindow("Movie Window", (value = show_movie_window) => show_movie_window = value);
+            }
             if (font) {
                 ImGui.PushFont(font);
                 ImGui.Text(`${font.GetDebugName()}`);
@@ -184,6 +287,9 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 show_another_window = false;
             ImGui.End();
         }
+
+        
+
         ImGui.EndFrame();
         // Rendering
         ImGui.Render();
@@ -294,8 +400,12 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             image.addEventListener("load", (event) => {
                 gl.bindTexture(gl.TEXTURE_2D, image_gl_texture);
                 gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+
+
             });
             image.src = image_url;
+
         }
     }
     function CleanUpImage() {
@@ -429,6 +539,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             show_sandbox_window = false;
             show_gamepad_window = false;
             show_movie_window = false;
+            upload_images = false;
             /* static */ f = 0.0;
             /* static */ counter = 0;
             done = false;
