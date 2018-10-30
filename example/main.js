@@ -107,6 +107,24 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         }
     }
 
+    function UploadImages(datasetId, imagesList, idx) {
+        var image = imagesList[idx];
+        idx += 1;
+
+        const Http = new XMLHttpRequest();
+        const url='http://192.168.1.42:8094/annotator_supreme/annotation/'+datasetId;
+        Http.open("POST", url, true);
+        
+        var formData = new FormData();
+        formData.append("image", image);
+        Http.send(formData);
+        Http.onload=(e)=>{
+            if (idx < imagesList.length) {
+                UploadImages(datasetId, imagesList, idx);
+            }
+        }
+    }
+
     // Main loop
     function _loop(time) {
         // Poll and handle events (inputs, window resize, etc.)
@@ -186,8 +204,10 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     }
                 }
 
-                if (ImGui.Button("Delete")) {
-                    deleting_dataset = true;
+                if (all_datasets.length > 0) {
+                    if (ImGui.Button("Delete")) {
+                        deleting_dataset = true;
+                    }
                 }
                 if (deleting_dataset) {
                     ImGui.Text("Are you sure you wan't to remove this dataset?");
@@ -244,28 +264,12 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                         files = tgt.files;
 
                     if (files && files.length) {
-                        const Http = new XMLHttpRequest();
-                        const url='http://192.168.1.42:8094/annotator_supreme/annotation/1';
-                        Http.open("POST", url, true);
-                        
-                        var formData = new FormData();
-                        formData.append("image", files[0]);
-                        // Http.setRequestHeader("Content-Type", fr.type);
-                        Http.send(formData);
-                        Http.onreadystatechange=(e)=>{
-                            console.log(Http.responseText)
-                            upload_images = false;
-                            gl.canvas.style.left = "0px";
-                        }
-
-                        console.log(files);
+                        var id = all_datasets[current_dataset]["id"].toString();
+                        UploadImages(id, files, 0);
                     }
 
-                    // Not supported
-                    else {
-                        // fallback -- perhaps submit the input to an iframe and temporarily store
-                        // them on the server until the user's session ends.
-                    }
+                    upload_images = false;
+                    gl.canvas.style.left = "0px";
                 }
             } else {
                 const gl = ImGui_Impl.gl;
