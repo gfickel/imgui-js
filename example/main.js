@@ -8,7 +8,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             step((generator = generator.apply(thisArg, _arguments || [])).next());
         });
     };
-    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, upload_images, all_datasets, current_dataset;
+    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset;
     var __moduleName = context_1 && context_1.id;
     function LoadArrayBuffer(url) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -92,20 +92,21 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             if (typeof (window) !== "undefined") {
                 window.requestAnimationFrame(_loop);
             }
-
-            const Http = new XMLHttpRequest();
-            const url='http://192.168.1.42:8094/annotator_supreme/dataset/all';
-            Http.responseType = 'json';
-            Http.open("GET", url, true);
-            Http.send();
-            Http.onload=(e)=>{
-                for (var i=0; i<Http.response['datasets'].length; i++) {
-                    all_datasets.push(Http.response['datasets'][i]['name']);
-                }
-            }
-
+            LoadDatasets();
         });
     }
+
+    function LoadDatasets() {
+        const Http = new XMLHttpRequest();
+        const url='http://192.168.1.42:8094/annotator_supreme/dataset/all';
+        Http.responseType = 'json';
+        Http.open("GET", url, true);
+        Http.send();
+        Http.onload=(e)=>{
+            all_datasets = Http.response['datasets'];
+        }
+    }
+
     // Main loop
     function _loop(time) {
         // Poll and handle events (inputs, window resize, etc.)
@@ -179,11 +180,56 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
             if(ImGui.CollapsingHeader("Datasets")) {
                 for (var i=0; i<all_datasets.length; i++) {
-                    if (ImGui.Selectable(all_datasets[i]+"##"+i.toString(), current_dataset == i)) {
+                    if (ImGui.Selectable(all_datasets[i]['name']+"##"+i.toString(), current_dataset == i)) {
                         current_dataset = i;
-                        console.log("current_dataset", current_dataset);
+                        LoadImages();
                     }
                 }
+
+                if (ImGui.Button("Delete")) {
+                    deleting_dataset = true;
+                }
+                if (deleting_dataset) {
+                    ImGui.Text("Are you sure you wan't to remove this dataset?");
+                    if (ImGui.Button("Yes##delete")) {
+                        const Http = new XMLHttpRequest();
+                        var id = all_datasets[current_dataset]["id"].toString();
+                        const url = 'http://192.168.1.42:8094/annotator_supreme/dataset/'+id;
+                        Http.open("DELETE", url, true);
+                        Http.send();
+                        Http.onload=(e)=>{
+                            LoadDatasets();
+                        }
+
+                        deleting_dataset = false;
+                    }
+                    if (ImGui.Button("No##delete")) {
+                        deleting_dataset = false;
+                    }
+                }
+                
+                ImGui.InputText("##input_dataset", (value = dataset_name) => dataset_name = value); 
+                ImGui.SameLine();
+                if (ImGui.Button("Add Dataset") && dataset_name) {
+                    const Http = new XMLHttpRequest();
+                    const url='http://192.168.1.42:8094/annotator_supreme/dataset';
+                    Http.open("POST", url, true);
+                    
+                    var data = {}
+                    data.name = dataset_name;
+                    var json = JSON.stringify(data);
+                    Http.setRequestHeader("Content-Type", "application/json; charset=utf-8");
+                    Http.send(json);
+                    Http.onload=(e)=>{
+                        LoadDatasets();
+                    }
+                    dataset_name = '';
+                }
+
+            }
+            
+            if(ImGui.CollapsingHeader("Annotate Images")) {
+                
             }
 
             
@@ -251,6 +297,19 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         ImGui_Impl.RenderDrawData(ImGui.GetDrawData());
         if (typeof (window) !== "undefined") {
             window.requestAnimationFrame(done ? _done : _loop);
+        }
+    }
+    function LoadImages() {
+        var id = all_datasets[current_dataset]["id"].toString();
+            
+        const Http = new XMLHttpRequest();
+        const url='http://192.168.1.42:8094/annotator_supreme/annotation/'+id+'/all';
+        Http.responseType = 'json';
+        Http.open("GET", url, true);
+        Http.send();
+        Http.onload=(e)=>{
+            all_images = Http.response['annotations'];
+            current_image = 0;
         }
     }
     function _done() {
@@ -488,7 +547,11 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             show_movie_window = false;
             upload_images = false;
             current_dataset = 0;
-            all_datasets = [];
+            all_datasets = null;
+            current_image = 0;
+            all_images = null;
+            dataset_name = '';
+            deleting_dataset = false;
             /* static */ f = 0.0;
             /* static */ counter = 0;
             done = false;
