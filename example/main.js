@@ -76,9 +76,9 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
         for (var i=y-5; i<y+5; i++) {
             for (var j=x-5; j<x+5; j++) {
-                if (i<=0 || i>=hal_image.height || j<0 || j>= hal_image.width)
+                if (i<=0 || i>=textureImage.height || j<0 || j>= textureImage.width)
                     continue;
-                var idx = i*hal_image.width*4+j*4
+                var idx = i*textureImage.width*4+j*4
                 pixels[idx+0] = 200;
                 pixels[idx+1] = 0;
                 pixels[idx+2] = 0;
@@ -250,25 +250,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             ImGui.Text("This is just a proof of concept... so it will be buggy");
             ImGui.Text(`Application average ${(1000.0 / ImGui.GetIO().Framerate).toFixed(3)} ms/frame (${ImGui.GetIO().Framerate.toFixed(1)} FPS)`);
 
-            var screen_pos = ImGui.GetCursorScreenPos();
-            ImGui.SetCursorScreenPos(ImGui.GetCursorScreenPos());
-            if (screen_pos == screen_pos) {
-                if (hal_image.gl_texture) {
-                    const gl = ImGui_Impl.gl;
-
-                    var x = ImGui.GetIO().MousePos.x-screen_pos.x;
-                    var y = ImGui.GetIO().MousePos.y-screen_pos.y;
-                    var pixels = GetOriginalPixels(hal_image);
-
-                    DrawPoint(hal_image, pixels, x, y, 600/2, 450/2);
-
-                    UpdateTexture(hal_image, pixels, gl);
-                }
-            }
-
-            ImGui.Image(hal_image.gl_texture, new imgui_js_1.ImVec2(600/2, 450/2));
-
-            if (ImGui.ImageButton(hal_image.gl_texture, new imgui_js_1.ImVec2(600/2, 450/2))) {
+            if (ImGui.ImageButton(hal_image.gl_texture, new imgui_js_1.ImVec2(100, 100))) {
                 if (hal_image.image) {
                     hal_image.image.src = 'https://static01.nyt.com/images/2018/05/15/arts/01hal-voice1/merlin_135847308_098289a6-90ee-461b-88e2-20920469f96a-articleLarge.jpg';
                 }
@@ -334,7 +316,29 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             
             if(ImGui.CollapsingHeader("Annotate Images")) {
                 if (current_texture_image && current_texture_image.gl_texture) {
-                    ImGui.Image(current_texture_image.gl_texture, new imgui_js_1.ImVec2(600/2, 450/2));
+                    var max_size = 500;
+                    var max_dim = current_texture_image.width;
+                    if (max_dim < current_texture_image.height) 
+                        max_dim = current_texture_image.height;
+
+                    var scale = max_size/max_dim;
+                    var plot_width = Math.round(current_texture_image.width*scale);
+                    var plot_height = Math.round(current_texture_image.height*scale);
+                    var screen_pos = ImGui.GetCursorScreenPos();
+                    ImGui.SetCursorScreenPos(ImGui.GetCursorScreenPos());
+                    if (screen_pos == screen_pos) {
+                        const gl = ImGui_Impl.gl;
+
+                        var x = ImGui.GetIO().MousePos.x-screen_pos.x;
+                        var y = ImGui.GetIO().MousePos.y-screen_pos.y;
+                        var pixels = GetOriginalPixels(current_texture_image);
+
+                        DrawPoint(current_texture_image, pixels, x, y, plot_width, plot_height);
+
+                        UpdateTexture(current_texture_image, pixels, gl);
+                    }
+
+                    ImGui.Image(current_texture_image.gl_texture, new imgui_js_1.ImVec2(plot_width, plot_height));
                 }
             }
 
@@ -486,7 +490,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             });
             image.src = image_url;
 
-            hal_image = new TextureImage(8,8, "https://i.imgur.com/W2nA69u.jpg", gl);//"https://static01.nyt.com/images/2018/05/15/arts/01hal-voice1/merlin_135847308_098289a6-90ee-461b-88e2-20920469f96a-articleLarge.jpg", gl);
+            hal_image = new TextureImage(8,8, "https://avatars1.githubusercontent.com/u/16866042", gl);//"https://static01.nyt.com/images/2018/05/15/arts/01hal-voice1/merlin_135847308_098289a6-90ee-461b-88e2-20920469f96a-articleLarge.jpg", gl);
         }
     }
     function CleanUpImage() {
