@@ -8,7 +8,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             step((generator = generator.apply(thisArg, _arguments || [])).next());
         });
     };
-    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset;
+    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset, hal_image, current_texture_image;
     var __moduleName = context_1 && context_1.id;
     function LoadArrayBuffer(url) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -16,6 +16,90 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             return response.arrayBuffer();
         });
     }
+    
+    function TextureImage(width, height, url, gl) {
+        this.width = width;
+        this.height = height;
+        this.gl_texture = gl.createTexture();
+        var image_element;
+        this.image = image_element = new Image();
+
+        this.pixels = new Uint8Array(4 * width * height);
+        gl.bindTexture(gl.TEXTURE_2D, this.gl_texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.pixels);
+        this.image.crossOrigin = "anonymous";
+        var self = this;
+        this.image.addEventListener("load", (event) => {
+            self.width = image_element.naturalWidth;
+            self.height = image_element.naturalHeight;            
+        
+            // Now that the image is loaded, update self.pixels to have the
+            // original image
+            gl.bindTexture(gl.TEXTURE_2D, self.gl_texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image_element);
+
+
+            var framebuffer = gl.createFramebuffer();
+            gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, self.gl_texture, 0);
+
+            if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE)
+            {
+                var sTextureSize = self.width * self.height * 4;    // r, g, b, a
+                self.pixels = new Uint8Array( sTextureSize );
+                var pixels2 = new Uint8Array( sTextureSize );
+                gl.readPixels( 0, 0, self.width, self.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels2 );
+                for (var i=0; i<sTextureSize; i++)
+                    self.pixels[i] = pixels2[i];
+            }
+
+            gl.deleteFramebuffer(framebuffer);
+        });
+        this.image.src = url;
+    }
+
+    // This is slow! Call only once before all the texture updates
+    function GetOriginalPixels(textureImage) {
+        var texture_size = textureImage.width * textureImage.height * 4;    // r, g, b, a
+        var pixels = new Uint8Array( texture_size );
+
+        for (var i=0; i<texture_size; i++)
+            pixels[i] = textureImage.pixels[i];
+
+        return pixels;
+    }
+
+    function DrawPoint(textureImage, pixels, x, y, canvasWidth, canvasHeight) {
+        var scale_x = textureImage.width / canvasWidth;
+        var scale_y = textureImage.height / canvasHeight;
+        
+        x = x*scale_x;
+        y = y*scale_y;
+
+        for (var i=y-4; i<y+4; i++) {
+            for (var j=x-4; j<x+4; j++) {
+                if (i<=0 || i>=hal_image.height || j<0 || j>= hal_image.width)
+                    continue;
+                var idx = i*hal_image.width*4+j*4
+                pixels[idx+0] = 200;
+                pixels[idx+1] = 0;
+                pixels[idx+2] = 0;
+            }
+        }
+    }
+
+    function UpdateTexture(textureImage, pixels, gl) {
+        gl.bindTexture(gl.TEXTURE_2D, textureImage.gl_texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 
+                      textureImage.width, textureImage.height, 0,
+                      gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    }
+
+        
     function main() {
         return __awaiter(this, void 0, void 0, function* () {
             yield ImGui.default();
@@ -190,6 +274,34 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             //         image_element.src = image_url;
             //     }
             // }
+
+
+
+            var screen_pos = ImGui.GetCursorScreenPos();
+            ImGui.SetCursorScreenPos(ImGui.GetCursorScreenPos());
+            if (screen_pos == screen_pos) {
+                if (hal_image.gl_texture) {
+                    const gl = ImGui_Impl.gl;
+
+                    var x = ImGui.GetIO().MousePos.x-screen_pos.x;
+                    var y = ImGui.GetIO().MousePos.y-screen_pos.y;
+                    var pixels = GetOriginalPixels(hal_image);
+
+                    DrawPoint(hal_image, pixels, x, y, 600/2, 450/2);
+
+                    UpdateTexture(hal_image, pixels, gl);
+                }
+
+            }
+
+            ImGui.Image(hal_image.gl_texture, new imgui_js_1.ImVec2(600/2, 450/2));
+
+            if (ImGui.ImageButton(hal_image.gl_texture, new imgui_js_1.ImVec2(600/2, 450/2))) {
+                if (hal_image.image) {
+                    hal_image.image.src = 'https://static01.nyt.com/images/2018/05/15/arts/01hal-voice1/merlin_135847308_098289a6-90ee-461b-88e2-20920469f96a-articleLarge.jpg';
+                }
+            }
+
             if (ImGui.IsItemHovered()) {
                 ImGui.BeginTooltip();
                 ImGui.Text(image_url);
@@ -410,12 +522,10 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             image.addEventListener("load", (event) => {
                 gl.bindTexture(gl.TEXTURE_2D, image_gl_texture);
                 gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-
-
-
             });
             image.src = image_url;
 
+            hal_image = new TextureImage(8,8, "https://static01.nyt.com/images/2018/05/15/arts/01hal-voice1/merlin_135847308_098289a6-90ee-461b-88e2-20920469f96a-articleLarge.jpg", gl);
         }
     }
     function CleanUpImage() {
