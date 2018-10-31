@@ -245,58 +245,6 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             ImGui.Text("This is just a proof of concept... so it will be buggy");
             ImGui.Text(`Application average ${(1000.0 / ImGui.GetIO().Framerate).toFixed(3)} ms/frame (${ImGui.GetIO().Framerate.toFixed(1)} FPS)`);
 
-            // var screen_pos = ImGui.GetCursorScreenPos();
-            // ImGui.SetCursorScreenPos(ImGui.GetCursorScreenPos());
-            // if (screen_pos == screen_pos) {
-            //     if (image_gl_texture) {
-            //         const gl = ImGui_Impl.gl;
-
-            //         var x = ImGui.GetIO().MousePos.x-screen_pos.x;
-            //         var y = ImGui.GetIO().MousePos.y-screen_pos.y;
-
-            //         var framebuffer = gl.createFramebuffer();
-            //         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-            //         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, image_gl_texture, 0);
-
-            //         if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE)
-            //         {
-            //             var sTextureSize = 512 * 512 * 4;    // r, g, b, a
-            //             var pixels2 = new Uint8Array( sTextureSize );
-            //             gl.readPixels( 0, 0, 512, 512, gl.RGBA, gl.UNSIGNED_BYTE, pixels2 );
-
-            //             for (var i=y-4; i<y+4; i++) {
-            //                 for (var j=x-4; j<x+4; j++) {
-            //                     if (i<=0 || i>=512 || j<0 || j>= 512)
-            //                         continue;
-            //                     var idx = i*512*4+j*4;
-            //                     pixels2[idx+0] = 200;
-            //                     pixels2[idx+1] = 0;
-            //                     pixels2[idx+2] = 0;
-            //                 }
-            //             }
-
-            //             // upload changes
-            //             gl.bindTexture(gl.TEXTURE_2D, image_gl_texture);
-            //             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 
-            //                           512, 512, 0,
-            //                           gl.RGBA, gl.UNSIGNED_BYTE, pixels2);
-
-            //         }
-
-            //         gl.deleteFramebuffer(framebuffer);
-            //     } 
-            // }
-
-            // if (ImGui.ImageButton(image_gl_texture, new imgui_js_1.ImVec2(512, 512))) {
-            //     // show_demo_window = !show_demo_window;
-            //     image_url = image_urls[(image_urls.indexOf(image_url) + 1) % image_urls.length];
-            //     if (image_element) {
-            //         image_element.src = image_url;
-            //     }
-            // }
-
-
-
             var screen_pos = ImGui.GetCursorScreenPos();
             ImGui.SetCursorScreenPos(ImGui.GetCursorScreenPos());
             if (screen_pos == screen_pos) {
