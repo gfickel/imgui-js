@@ -206,6 +206,11 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         // if (current_texture_image) {
         //     DeleteTextureImage(current_texture_image);
         // }
+        if (current_image >= all_images.length) {
+            current_texture_image = null;
+            return;
+        }
+
         const gl = ImGui_Impl.gl;
         var url = "http://192.168.1.42:8094/annotator_supreme/";
         current_texture_image = new TextureImage(8,8,url+all_images[current_image]['image_url'], gl);
@@ -328,7 +333,9 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             }
             
             if(ImGui.CollapsingHeader("Annotate Images")) {
-                ImGui.Image(current_texture_image.gl_texture, new imgui_js_1.ImVec2(600/2, 450/2));
+                if (current_texture_image && current_texture_image.gl_texture) {
+                    ImGui.Image(current_texture_image.gl_texture, new imgui_js_1.ImVec2(600/2, 450/2));
+                }
             }
 
             
