@@ -203,11 +203,13 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         }
     }
     function LoadCurrentImage() {
+        // TODO: Am I leaking gl textures? And if so, is it thaaaat bad?
         // if (current_texture_image) {
         //     DeleteTextureImage(current_texture_image);
         // }
         if (current_image >= all_images.length) {
             current_texture_image = null;
+            console.log("Invalid image to load", current_image);
             return;
         }
 
@@ -341,6 +343,64 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     ImGui.Image(current_texture_image.gl_texture, new imgui_js_1.ImVec2(plot_width, plot_height));
                 }
             }
+
+
+                const io = ImGui.GetIO();
+
+                ImGui.Text("Mouse clicked:");
+                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++)
+                    if (ImGui.IsMouseClicked(i)) {
+                        ImGui.SameLine();
+                        ImGui.Text(`b${i}`);
+                    }
+                ImGui.Text("Mouse dbl-clicked:");
+                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++)
+                    if (ImGui.IsMouseDoubleClicked(i)) {
+                        ImGui.SameLine();
+                        ImGui.Text(`b${i}`);
+                    }
+                ImGui.Text("Mouse released:");
+                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++)
+                    if (ImGui.IsMouseReleased(i)) {
+                        ImGui.SameLine();
+                        ImGui.Text(`b${i}`);
+                    }
+
+                ImGui.Text("Keys down:");
+                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++)
+                    if (io.KeysDownDuration[i] >= 0.0) {
+                        ImGui.SameLine();
+                        ImGui.Text(`${i} (${io.KeysDownDuration[i].toFixed(2)} secs)`);
+                    }
+                ImGui.Text("Keys pressed:");
+                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++)
+                    if (ImGui.IsKeyPressed(i)) {
+                        ImGui.SameLine();
+                        ImGui.Text(i.toString());
+                    }
+                ImGui.Text("Keys release:");
+                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++)
+                    if (ImGui.IsKeyReleased(i)) {
+                        ImGui.SameLine();
+                        ImGui.Text(i.toString());
+                    }
+
+            for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++) {
+                if (ImGui.IsKeyPressed(i) && i==37) {
+                    current_image -= 1;
+                    if (current_image < 0) 
+                        current_image = 0;
+                    console.log("Left", i);
+                    LoadCurrentImage();
+                } else if (ImGui.IsKeyPressed(i) && i==39) {
+                    current_image += 1;
+                    if (current_image >= all_images.length)
+                        current_image = all_images.length-1;
+                    console.log("Right", i);
+                    LoadCurrentImage();
+                }
+            }
+
 
             
             if (ImGui.Button("Upload Images")) {
