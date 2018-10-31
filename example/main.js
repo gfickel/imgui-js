@@ -340,7 +340,10 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     var plot_width = Math.round(current_texture_image.width*scale);
                     var plot_height = Math.round(current_texture_image.height*scale);
                     var screen_pos = ImGui.GetCursorScreenPos();
-                    ImGui.SetCursorScreenPos(ImGui.GetCursorScreenPos());
+                    // This invisible button prevents that we move the whole screen
+                    // when clicking and dragging on the image.
+                    ImGui.InvisibleButton("Annotation Button", new imgui_js_1.ImVec2(plot_width, plot_height));
+                    ImGui.SetCursorScreenPos(screen_pos);
                     if (screen_pos == screen_pos) {
                         const gl = ImGui_Impl.gl;
 
