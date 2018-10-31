@@ -17,20 +17,28 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         });
     }
     
-    function TextureImage(width, height, url, gl) {
-        this.width = width;
-        this.height = height;
+    // **************************************************************
+    // Functions that abstract several of the image stuff.
+    //
+    // You can create a TextureImage with the URL and a gl reference.
+    // Then you can get its pixels to draw as you want, and then
+    // you must call UpdateTexture so that we can send those
+    // modifications back to the OpenGL texture.
+    // **************************************************************
+    function TextureImage(url, gl) {
+        this.width = 8;
+        this.height = 8;
         this.gl_texture = gl.createTexture();
         var image_element;
         this.image = image_element = new Image();
 
-        this.pixels = new Uint8Array(4 * width * height);
+        this.pixels = new Uint8Array(4 * this.width * this.height);
         gl.bindTexture(gl.TEXTURE_2D, this.gl_texture);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.pixels);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.width, this.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.pixels);
         this.image.crossOrigin = "anonymous";
         var self = this;
         this.image.addEventListener("load", (event) => {
@@ -93,6 +101,71 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                       gl.RGBA, gl.UNSIGNED_BYTE, pixels);
     }
 
+
+    // **************************************************************
+    // Functions that manage the images and datasets
+    // **************************************************************
+
+    function LoadDatasets() {
+        const Http = new XMLHttpRequest();
+        const url='http://192.168.1.42:8094/annotator_supreme/dataset/all';
+        Http.responseType = 'json';
+        Http.open("GET", url, true);
+        Http.send();
+        Http.onload=(e)=>{
+            all_datasets = Http.response['datasets'];
+        }
+    }
+
+    function UploadImages(datasetId, imagesList, idx) {
+        var image = imagesList[idx];
+        idx += 1;
+
+        const Http = new XMLHttpRequest();
+        const url='http://192.168.1.42:8094/annotator_supreme/annotation/'+datasetId;
+        Http.open("POST", url, true);
+        
+        var formData = new FormData();
+        formData.append("image", image);
+        Http.send(formData);
+        Http.onload=(e)=>{
+            if (idx < imagesList.length) {
+                UploadImages(datasetId, imagesList, idx);
+            }
+        }
+    }
+    function LoadCurrentImage() {
+        // TODO: Am I leaking gl textures? And if so, is it thaaaat bad?
+        // if (current_texture_image) {
+        //     DeleteTextureImage(current_texture_image);
+        // }
+        if (current_image >= all_images.length) {
+            current_texture_image = null;
+            console.log("Invalid image to load", current_image);
+            return;
+        }
+
+        const gl = ImGui_Impl.gl;
+        var url = "http://192.168.1.42:8094/annotator_supreme/";
+        current_texture_image = new TextureImage(url+all_images[current_image]['image_url'], gl);
+    }
+
+    function LoadImages() {
+        var id = all_datasets[current_dataset]["id"].toString();
+           
+        current_image = -1;
+        const Http = new XMLHttpRequest();
+        const url='http://192.168.1.42:8094/annotator_supreme/annotation/'+id+'/all';
+        Http.responseType = 'json';
+        Http.open("GET", url, true);
+        Http.send();
+        Http.onload=(e)=>{
+            all_images = Http.response['annotations'];
+            console.log(all_images);
+            current_image = 0;
+            LoadCurrentImage();
+        }
+    }
         
     function main() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -174,66 +247,6 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         });
     }
 
-    function LoadDatasets() {
-        const Http = new XMLHttpRequest();
-        const url='http://192.168.1.42:8094/annotator_supreme/dataset/all';
-        Http.responseType = 'json';
-        Http.open("GET", url, true);
-        Http.send();
-        Http.onload=(e)=>{
-            all_datasets = Http.response['datasets'];
-        }
-    }
-
-    function UploadImages(datasetId, imagesList, idx) {
-        var image = imagesList[idx];
-        idx += 1;
-
-        const Http = new XMLHttpRequest();
-        const url='http://192.168.1.42:8094/annotator_supreme/annotation/'+datasetId;
-        Http.open("POST", url, true);
-        
-        var formData = new FormData();
-        formData.append("image", image);
-        Http.send(formData);
-        Http.onload=(e)=>{
-            if (idx < imagesList.length) {
-                UploadImages(datasetId, imagesList, idx);
-            }
-        }
-    }
-    function LoadCurrentImage() {
-        // TODO: Am I leaking gl textures? And if so, is it thaaaat bad?
-        // if (current_texture_image) {
-        //     DeleteTextureImage(current_texture_image);
-        // }
-        if (current_image >= all_images.length) {
-            current_texture_image = null;
-            console.log("Invalid image to load", current_image);
-            return;
-        }
-
-        const gl = ImGui_Impl.gl;
-        var url = "http://192.168.1.42:8094/annotator_supreme/";
-        current_texture_image = new TextureImage(8,8,url+all_images[current_image]['image_url'], gl);
-    }
-
-    function LoadImages() {
-        var id = all_datasets[current_dataset]["id"].toString();
-           
-        current_image = -1;
-        const Http = new XMLHttpRequest();
-        const url='http://192.168.1.42:8094/annotator_supreme/annotation/'+id+'/all';
-        Http.responseType = 'json';
-        Http.open("GET", url, true);
-        Http.send();
-        Http.onload=(e)=>{
-            all_images = Http.response['annotations'];
-            console.log(all_images);
-            current_image = 0;
-            LoadCurrentImage();
-        }
-    }
     
 
     // Main loop
@@ -550,7 +563,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             });
             image.src = image_url;
 
-            hal_image = new TextureImage(8,8, "https://avatars1.githubusercontent.com/u/16866042", gl);//"https://static01.nyt.com/images/2018/05/15/arts/01hal-voice1/merlin_135847308_098289a6-90ee-461b-88e2-20920469f96a-articleLarge.jpg", gl);
+            hal_image = new TextureImage("https://avatars1.githubusercontent.com/u/16866042", gl);//"https://static01.nyt.com/images/2018/05/15/arts/01hal-voice1/merlin_135847308_098289a6-90ee-461b-88e2-20920469f96a-articleLarge.jpg", gl);
         }
     }
     function CleanUpImage() {
