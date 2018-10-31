@@ -42,7 +42,6 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             gl.bindTexture(gl.TEXTURE_2D, self.gl_texture);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image_element);
 
-
             var framebuffer = gl.createFramebuffer();
             gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
             gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, self.gl_texture, 0);
@@ -77,11 +76,12 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         var scale_x = textureImage.width / canvasWidth;
         var scale_y = textureImage.height / canvasHeight;
         
-        x = x*scale_x;
-        y = y*scale_y;
+        x = Math.round(x*scale_x);
+        y = Math.round(y*scale_y);
+        if (x<0 || y<0) return;
 
-        for (var i=y-4; i<y+4; i++) {
-            for (var j=x-4; j<x+4; j++) {
+        for (var i=y-5; i<y+5; i++) {
+            for (var j=x-5; j<x+5; j++) {
                 if (i<=0 || i>=hal_image.height || j<0 || j>= hal_image.width)
                     continue;
                 var idx = i*hal_image.width*4+j*4
@@ -298,7 +298,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
             if (ImGui.ImageButton(hal_image.gl_texture, new imgui_js_1.ImVec2(600/2, 450/2))) {
                 if (hal_image.image) {
-                    hal_image.image.src = 'https://static01.nyt.com/images/2018/05/15/arts/01hal-voice1/merlin_135847308_098289a6-90ee-461b-88e2-20920469f96a-articleLarge.jpg';
+                    hal_image.image.src = 'https://vignette.wikia.nocookie.net/marvel_dc/images/1/10/Hal_Jordan_Prime_Earth_0005.jpg';//'https://static01.nyt.com/images/2018/05/15/arts/01hal-voice1/merlin_135847308_098289a6-90ee-461b-88e2-20920469f96a-articleLarge.jpg';
                 }
             }
 
@@ -525,7 +525,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             });
             image.src = image_url;
 
-            hal_image = new TextureImage(8,8, "https://static01.nyt.com/images/2018/05/15/arts/01hal-voice1/merlin_135847308_098289a6-90ee-461b-88e2-20920469f96a-articleLarge.jpg", gl);
+            hal_image = new TextureImage(8,8, "https://akm-img-a-in.tosshub.com/indiatoday/images/story/201810/HAL-Oct29-1.jpeg?iB6EHqbYNjSRQr.FCC_ct4copGKuXbGB", gl);//"https://static01.nyt.com/images/2018/05/15/arts/01hal-voice1/merlin_135847308_098289a6-90ee-461b-88e2-20920469f96a-articleLarge.jpg", gl);
         }
     }
     function CleanUpImage() {
