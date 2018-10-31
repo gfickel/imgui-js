@@ -8,7 +8,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             step((generator = generator.apply(thisArg, _arguments || [])).next());
         });
     };
-    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset, hal_image, current_texture_image;
+    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, annotating_active, annotation_mode, num_landmarks, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset, hal_image, current_texture_image;
     var __moduleName = context_1 && context_1.id;
     function LoadArrayBuffer(url) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -93,6 +93,71 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             }
         }
     }
+
+    function DrawThinLine (x1, y1, x2, y2, pixels, width, height, canvasWidth, canvasHeight) {
+        // Define differences and error check
+        var scale_x = width / canvasWidth;
+        var scale_y = height / canvasHeight;
+        
+        x1 = Math.round(x1*scale_x);
+        y1 = Math.round(y1*scale_y);
+        x2 = Math.round(x2*scale_x);
+        y2 = Math.round(y2*scale_y);
+        if (x1 < 0 || y1 < 0 || x1 >= width || y1 >= height)
+            return;
+        var dx = Math.abs(x2 - x1);
+        var dy = Math.abs(y2 - y1);
+        var sx = (x1 < x2) ? 1 : -1;
+        var sy = (y1 < y2) ? 1 : -1;
+        var err = dx - dy;
+        var idx = 0;
+        // Main loop
+        while (!((x1 == x2) && (y1 == y2))) {
+            var e2 = err << 1;
+            if (e2 > -dy) {
+              err -= dy;
+              x1 += sx;
+            }
+            if (e2 < dx) {
+              err += dx;
+              y1 += sy;
+            }
+            // ignore coordinates that fall outside of image 
+            if (x1 < 0 || y1 < 0 || x1 >= width || y1 >= height)
+                continue
+            idx = y1*width*4 + x1*4;
+            pixels[idx+0] = 0;
+            pixels[idx+1] = 0;
+            pixels[idx+2] = 200;
+        }
+    }
+
+
+    // http://members.chello.at/~easyfilter/bresenham.html
+    // function plotLineWidth((int x0, int y0, int x1, int y1, float wd)
+    // { 
+    //    int dx = abs(x1-x0), sx = x0 < x1 ? 1 : -1; 
+    //    int dy = abs(y1-y0), sy = y0 < y1 ? 1 : -1; 
+    //    int err = dx-dy, e2, x2, y2;                          /* error value e_xy */
+    //    float ed = dx+dy == 0 ? 1 : sqrt((float)dx*dx+(float)dy*dy);
+    //    
+    //    for (wd = (wd+1)/2; ; ) {                                   /* pixel loop */
+    //       setPixelColor(x0,y0,max(0,255*(abs(err-dx+dy)/ed-wd+1)));
+    //       e2 = err; x2 = x0;
+    //       if (2*e2 >= -dx) {                                           /* x step */
+    //          for (e2 += dy, y2 = y0; e2 < ed*wd && (y1 != y2 || dx > dy); e2 += dx)
+    //             setPixelColor(x0, y2 += sy, max(0,255*(abs(e2)/ed-wd+1)));
+    //          if (x0 == x1) break;
+    //          e2 = err; err -= dy; x0 += sx; 
+    //       } 
+    //       if (2*e2 <= dy) {                                            /* y step */
+    //          for (e2 = dx-e2; e2 < ed*wd && (x1 != x2 || dx < dy); e2 += dy)
+    //             setPixelColor(x2 += sx, y0, max(0,255*(abs(e2)/ed-wd+1)));
+    //          if (y0 == y1) break;
+    //          err += dx; y0 += sy; 
+    //       }
+    //    }
+    // }
 
     function UpdateTexture(textureImage, pixels, gl) {
         gl.bindTexture(gl.TEXTURE_2D, textureImage.gl_texture);
@@ -277,6 +342,8 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 ImGui.EndTooltip();
             }
 
+            ImGui.Checkbox("Annotation Window", (value = annotating_active) => annotating_active = value); // Edit bools storing our windows open/close state
+
             if(ImGui.CollapsingHeader("Datasets")) {
                 for (var i=0; i<all_datasets.length; i++) {
                     if (ImGui.Selectable(all_datasets[i]['name']+"##"+i.toString(), current_dataset == i)) {
@@ -326,39 +393,8 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     }
                     dataset_name = '';
                 }
-
             }
             
-            if(ImGui.CollapsingHeader("Annotate Images")) {
-                if (current_texture_image && current_texture_image.gl_texture) {
-                    var max_size = 500;
-                    var max_dim = current_texture_image.width;
-                    if (max_dim < current_texture_image.height) 
-                        max_dim = current_texture_image.height;
-
-                    var scale = max_size/max_dim;
-                    var plot_width = Math.round(current_texture_image.width*scale);
-                    var plot_height = Math.round(current_texture_image.height*scale);
-                    var screen_pos = ImGui.GetCursorScreenPos();
-                    // This invisible button prevents that we move the whole screen
-                    // when clicking and dragging on the image.
-                    ImGui.InvisibleButton("Annotation Button", new imgui_js_1.ImVec2(plot_width, plot_height));
-                    ImGui.SetCursorScreenPos(screen_pos);
-                    if (screen_pos == screen_pos) {
-                        const gl = ImGui_Impl.gl;
-
-                        var x = ImGui.GetIO().MousePos.x-screen_pos.x;
-                        var y = ImGui.GetIO().MousePos.y-screen_pos.y;
-                        var pixels = GetOriginalPixels(current_texture_image);
-
-                        DrawPoint(current_texture_image, pixels, x, y, plot_width, plot_height);
-
-                        UpdateTexture(current_texture_image, pixels, gl);
-                    }
-
-                    ImGui.Image(current_texture_image.gl_texture, new imgui_js_1.ImVec2(plot_width, plot_height));
-                }
-            }
 
 
                 const io = ImGui.GetIO();
@@ -452,6 +488,58 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             }
             ImGui.End();
         }
+        if (annotating_active) {
+            ImGui.Begin("Annotate Image"); 
+
+            var bbox_active = (annotation_mode==0);
+            var landmarks_active = (annotation_mode==1);
+            if (ImGui.Checkbox("Bounding Box", (value = bbox_active) => bbox_active = value))
+                annotation_mode = 0;
+            ImGui.SameLine();
+            if (ImGui.Checkbox("Landmarks Box", (value = landmarks_active) => landmarks_active = value))
+                annotation_mode = 1;
+
+            if (landmarks_active) {
+                var num_landmarks_str = num_landmarks.toString();
+                ImGui.InputText("##input_landmarks_num", (value = num_landmarks_str) => num_landmarks_str = value);
+                num_landmarks = parseInt(num_landmarks_str);
+                console.log("Number of landmarks", num_landmarks);
+            }
+
+            if (current_texture_image && current_texture_image.gl_texture) {
+                var max_size = 500;
+                var max_dim = current_texture_image.width;
+                if (max_dim < current_texture_image.height) 
+                    max_dim = current_texture_image.height;
+
+                var scale = max_size/max_dim;
+                var plot_width = Math.round(current_texture_image.width*scale);
+                var plot_height = Math.round(current_texture_image.height*scale);
+                var screen_pos = ImGui.GetCursorScreenPos();
+                // This invisible button prevents that we move the whole screen
+                // when clicking and dragging on the image.
+                ImGui.InvisibleButton("Annotation Button", new imgui_js_1.ImVec2(plot_width, plot_height));
+                ImGui.SetCursorScreenPos(screen_pos);
+                if (screen_pos == screen_pos) {
+                    const gl = ImGui_Impl.gl;
+
+                    var x = ImGui.GetIO().MousePos.x-screen_pos.x;
+                    var y = ImGui.GetIO().MousePos.y-screen_pos.y;
+                    var pixels = GetOriginalPixels(current_texture_image);
+
+                    DrawPoint(current_texture_image, pixels, x, y, plot_width, plot_height);
+                    DrawThinLine(x, y, x+20, y+20, pixels, current_texture_image.width, current_texture_image.height, plot_width, plot_height);
+
+                    UpdateTexture(current_texture_image, pixels, gl);
+                }
+
+                ImGui.Image(current_texture_image.gl_texture, new imgui_js_1.ImVec2(plot_width, plot_height));
+            }
+
+            ImGui.End();
+        }
+
+
 
         ImGui.EndFrame();
         // Rendering
@@ -700,6 +788,9 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             show_sandbox_window = false;
             show_gamepad_window = false;
             show_movie_window = false;
+            annotating_active = true;
+            annotation_mode = 0;
+            num_landmarks = 4;
             upload_images = false;
             current_dataset = 0;
             all_datasets = null;
