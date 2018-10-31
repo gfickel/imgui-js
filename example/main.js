@@ -63,13 +63,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
     // This is slow! Call only once before all the texture updates
     function GetOriginalPixels(textureImage) {
-        var texture_size = textureImage.width * textureImage.height * 4;    // r, g, b, a
-        var pixels = new Uint8Array( texture_size );
-
-        for (var i=0; i<texture_size; i++)
-            pixels[i] = textureImage.pixels[i];
-
-        return pixels;
+        return textureImage.pixels.slice();
     }
 
     function DrawPoint(textureImage, pixels, x, y, canvasWidth, canvasHeight) {
@@ -208,6 +202,32 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             }
         }
     }
+    function LoadCurrentImage() {
+        // if (current_texture_image) {
+        //     DeleteTextureImage(current_texture_image);
+        // }
+        const gl = ImGui_Impl.gl;
+        var url = "http://192.168.1.42:8094/annotator_supreme/";
+        current_texture_image = new TextureImage(8,8,url+all_images[current_image]['image_url'], gl);
+    }
+
+    function LoadImages() {
+        var id = all_datasets[current_dataset]["id"].toString();
+           
+        current_image = -1;
+        const Http = new XMLHttpRequest();
+        const url='http://192.168.1.42:8094/annotator_supreme/annotation/'+id+'/all';
+        Http.responseType = 'json';
+        Http.open("GET", url, true);
+        Http.send();
+        Http.onload=(e)=>{
+            all_images = Http.response['annotations'];
+            console.log(all_images);
+            current_image = 0;
+            LoadCurrentImage();
+        }
+    }
+    
 
     // Main loop
     function _loop(time) {
@@ -291,14 +311,13 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
                     UpdateTexture(hal_image, pixels, gl);
                 }
-
             }
 
             ImGui.Image(hal_image.gl_texture, new imgui_js_1.ImVec2(600/2, 450/2));
 
             if (ImGui.ImageButton(hal_image.gl_texture, new imgui_js_1.ImVec2(600/2, 450/2))) {
                 if (hal_image.image) {
-                    hal_image.image.src = 'https://vignette.wikia.nocookie.net/marvel_dc/images/1/10/Hal_Jordan_Prime_Earth_0005.jpg';//'https://static01.nyt.com/images/2018/05/15/arts/01hal-voice1/merlin_135847308_098289a6-90ee-461b-88e2-20920469f96a-articleLarge.jpg';
+                    hal_image.image.src = 'https://static01.nyt.com/images/2018/05/15/arts/01hal-voice1/merlin_135847308_098289a6-90ee-461b-88e2-20920469f96a-articleLarge.jpg';
                 }
             }
 
@@ -361,7 +380,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             }
             
             if(ImGui.CollapsingHeader("Annotate Images")) {
-                
+                ImGui.Image(current_texture_image.gl_texture, new imgui_js_1.ImVec2(600/2, 450/2));
             }
 
             
@@ -413,19 +432,6 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         ImGui_Impl.RenderDrawData(ImGui.GetDrawData());
         if (typeof (window) !== "undefined") {
             window.requestAnimationFrame(done ? _done : _loop);
-        }
-    }
-    function LoadImages() {
-        var id = all_datasets[current_dataset]["id"].toString();
-            
-        const Http = new XMLHttpRequest();
-        const url='http://192.168.1.42:8094/annotator_supreme/annotation/'+id+'/all';
-        Http.responseType = 'json';
-        Http.open("GET", url, true);
-        Http.send();
-        Http.onload=(e)=>{
-            all_images = Http.response['annotations'];
-            current_image = 0;
         }
     }
     function _done() {
@@ -525,7 +531,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             });
             image.src = image_url;
 
-            hal_image = new TextureImage(8,8, "https://akm-img-a-in.tosshub.com/indiatoday/images/story/201810/HAL-Oct29-1.jpeg?iB6EHqbYNjSRQr.FCC_ct4copGKuXbGB", gl);//"https://static01.nyt.com/images/2018/05/15/arts/01hal-voice1/merlin_135847308_098289a6-90ee-461b-88e2-20920469f96a-articleLarge.jpg", gl);
+            hal_image = new TextureImage(8,8, "https://i.imgur.com/W2nA69u.jpg", gl);//"https://static01.nyt.com/images/2018/05/15/arts/01hal-voice1/merlin_135847308_098289a6-90ee-461b-88e2-20920469f96a-articleLarge.jpg", gl);
         }
     }
     function CleanUpImage() {
