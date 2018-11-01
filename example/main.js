@@ -8,7 +8,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             step((generator = generator.apply(thisArg, _arguments || [])).next());
         });
     };
-    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, annotating_active, annotation_mode, num_landmarks, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset, hal_image, current_texture_image;
+    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, annotating_active, annotation_mode, num_landmarks, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset, hal_image, current_texture_image, current_landmarks, current_landmark_idx, current_boxes, drag_status, frame_updated;
     var __moduleName = context_1 && context_1.id;
     function LoadArrayBuffer(url) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -77,6 +77,9 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
     function DrawPoint(textureImage, pixels, x, y, canvasWidth, canvasHeight) {
         var scale_x = textureImage.width / canvasWidth;
         var scale_y = textureImage.height / canvasHeight;
+        if (canvasWidth < 0 || canvasHeight < 0) {
+            scale_x = scale_y = 1;
+        }
         
         x = Math.round(x*scale_x);
         y = Math.round(y*scale_y);
@@ -95,9 +98,11 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
     }
 
     function DrawThinLine (x1, y1, x2, y2, pixels, width, height, canvasWidth, canvasHeight) {
-        // Define differences and error check
         var scale_x = width / canvasWidth;
         var scale_y = height / canvasHeight;
+        if (canvasWidth < 0 || canvasHeight < 0) {
+            scale_x = scale_y = 1;
+        }
         
         x1 = Math.round(x1*scale_x);
         y1 = Math.round(y1*scale_y);
@@ -171,6 +176,62 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
     // Functions that manage the images and datasets
     // **************************************************************
 
+
+    function Box(x1, y1, x2, y2, x3, y3, x4, y4) {
+        this.x1 = x1;
+        this.y1 = y1;
+        this.x2 = x2;
+        this.y2 = y2;
+        this.x3 = x3;
+        this.y3 = y3;
+        this.x4 = x4;
+        this.y4 = y4;
+    }
+
+    function DraggingStatus() {
+        this.dragging = false;
+        this.im_idx = 0;
+        this.landmark_idx=-1;
+        this.landmark_pt_idx=-1;
+        this.dx = 0;
+        this.dy = 0;
+    }
+
+    function Landmark(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    function UpdateDraggingAnno(x, y) {
+        if (drag_status.landmark_idx < 0 || drag_status.landmark_idx >= current_landmarks.length) {
+            return;
+        }
+
+        var land_idx = drag_status.landmark_idx;
+        var pt_idx = drag_status.landmark_pt_idx;
+        current_landmarks[land_idx][pt_idx].x = x;
+        current_landmarks[land_idx][pt_idx].y = y;
+    }
+
+
+    function GetClosestLandmark(x, y, radius) {
+        var best_land_id = -1;
+        var best_land_pt_id = -1;
+        var best_land_dist = 10000;
+
+        for (let i=0; i<current_landmarks.length; i++) {
+            for (let j=0; j<current_landmarks[i].length; j++) {
+                var dist = Math.sqrt((current_landmarks[i][j].x-x)*(current_landmarks[i][j].x-x)+(current_landmarks[i][j].y-y)*(current_landmarks[i][j].y-y));
+                if (dist < radius && dist < best_land_dist) {
+                    best_land_dist = dist;
+                    best_land_id = i;
+                    best_land_pt_id = j;
+                }
+            }
+        }
+        return [best_land_id, best_land_pt_id];
+    }
+
     function LoadDatasets() {
         const Http = new XMLHttpRequest();
         const url='http://192.168.1.42:8094/annotator_supreme/dataset/all';
@@ -213,6 +274,10 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         const gl = ImGui_Impl.gl;
         var url = "http://192.168.1.42:8094/annotator_supreme/";
         current_texture_image = new TextureImage(url+all_images[current_image]['image_url'], gl);
+
+        current_boxes = [];
+        current_landmarks = [];
+        current_landmark_idx = 0;
     }
 
     function LoadImages() {
@@ -395,47 +460,44 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 }
             }
             
+            const io = ImGui.GetIO();
+            ImGui.Text("Mouse clicked:");
+            for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++)
+                if (ImGui.IsMouseClicked(i)) {
+                    ImGui.SameLine();
+                    ImGui.Text(`b${i}`);
+                }
+            ImGui.Text("Mouse dbl-clicked:");
+            for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++)
+                if (ImGui.IsMouseDoubleClicked(i)) {
+                    ImGui.SameLine();
+                    ImGui.Text(`b${i}`);
+                }
+            ImGui.Text("Mouse released:");
+            for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++)
+                if (ImGui.IsMouseReleased(i)) {
+                    ImGui.SameLine();
+                    ImGui.Text(`b${i}`);
+                }
 
-
-                const io = ImGui.GetIO();
-
-                ImGui.Text("Mouse clicked:");
-                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++)
-                    if (ImGui.IsMouseClicked(i)) {
-                        ImGui.SameLine();
-                        ImGui.Text(`b${i}`);
-                    }
-                ImGui.Text("Mouse dbl-clicked:");
-                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++)
-                    if (ImGui.IsMouseDoubleClicked(i)) {
-                        ImGui.SameLine();
-                        ImGui.Text(`b${i}`);
-                    }
-                ImGui.Text("Mouse released:");
-                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++)
-                    if (ImGui.IsMouseReleased(i)) {
-                        ImGui.SameLine();
-                        ImGui.Text(`b${i}`);
-                    }
-
-                ImGui.Text("Keys down:");
-                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++)
-                    if (io.KeysDownDuration[i] >= 0.0) {
-                        ImGui.SameLine();
-                        ImGui.Text(`${i} (${io.KeysDownDuration[i].toFixed(2)} secs)`);
-                    }
-                ImGui.Text("Keys pressed:");
-                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++)
-                    if (ImGui.IsKeyPressed(i)) {
-                        ImGui.SameLine();
-                        ImGui.Text(i.toString());
-                    }
-                ImGui.Text("Keys release:");
-                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++)
-                    if (ImGui.IsKeyReleased(i)) {
-                        ImGui.SameLine();
-                        ImGui.Text(i.toString());
-                    }
+            ImGui.Text("Keys down:");
+            for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++)
+                if (io.KeysDownDuration[i] >= 0.0) {
+                    ImGui.SameLine();
+                    ImGui.Text(`${i} (${io.KeysDownDuration[i].toFixed(2)} secs)`);
+                }
+            ImGui.Text("Keys pressed:");
+            for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++)
+                if (ImGui.IsKeyPressed(i)) {
+                    ImGui.SameLine();
+                    ImGui.Text(i.toString());
+                }
+            ImGui.Text("Keys release:");
+            for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++)
+                if (ImGui.IsKeyReleased(i)) {
+                    ImGui.SameLine();
+                    ImGui.Text(i.toString());
+                }
 
             for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++) {
                 if (ImGui.IsKeyPressed(i) && i==37) {
@@ -511,6 +573,8 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 var max_dim = current_texture_image.width;
                 if (max_dim < current_texture_image.height) 
                     max_dim = current_texture_image.height;
+                var im_cols = current_texture_image.width;
+                var im_rows = current_texture_image.height;
 
                 var scale = max_size/max_dim;
                 var plot_width = Math.round(current_texture_image.width*scale);
@@ -520,18 +584,98 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 // when clicking and dragging on the image.
                 ImGui.InvisibleButton("Annotation Button", new imgui_js_1.ImVec2(plot_width, plot_height));
                 ImGui.SetCursorScreenPos(screen_pos);
-                if (screen_pos == screen_pos) {
+
+
+                const io = ImGui.GetIO();
+                if (ImGui.IsMouseDragging()) {
+                    console.log("Mouse is dragging");
+                    if (drag_status.dragging == false) {
+                        drag_status.dragging = true;
+                        drag_status.dx = drag_status.dy = 0;
+                            
+                        var closest_landmark =  GetClosestLandmark(
+                                        (io.MousePos.x-screen_pos.x)/scale, 
+                                        (io.MousePos.y-screen_pos.y)/scale, 30);
+                        
+                        drag_status.landmark_idx = closest_landmark[0];
+                        drag_status.landmark_pt_idx = closest_landmark[1];
+                    }
+                    
+                    var x = (io.MousePos.x-screen_pos.x)/scale;
+                    var y = (io.MousePos.y-screen_pos.y)/scale;
+                    UpdateDraggingAnno(x, y);
+                    frame_updated = true;
+                } 
+                else { 
+                    if (drag_status.dragging) { // I'm stoping the dragging
+                        frame_updated = true;
+                        drag_status.landmark_idx = -1;
+                        drag_status.landmark_pt_idx = -1;
+                        drag_status.dragging = false;
+                    } 
+                    else { // normal case, there was no dragging on previous frame
+                        if (current_landmarks.length == 0)
+                            current_landmarks.push([]);
+                        if (current_landmarks[current_landmark_idx].length < num_landmarks) {
+                            for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++) {
+                                if (ImGui.IsMouseReleased(i)) {
+                                    if ( (io.MousePos.x-screen_pos.x) >= 0 &&
+                                         (io.MousePos.y-screen_pos.y) >= 0 && 
+                                         (io.MousePos.x-screen_pos.x)/scale <= im_cols &&
+                                         (io.MousePos.y-screen_pos.y)/scale <= im_rows) 
+                                    {
+                                        current_landmarks[current_landmark_idx].push(new Landmark(
+                                                (io.MousePos.x-screen_pos.x)/scale,
+                                                (io.MousePos.y-screen_pos.y)/scale));
+                                        frame_updated = true;
+                                        console.log(current_landmarks);
+                                        if (current_landmarks[current_landmark_idx].length == num_landmarks) {
+                                            current_landmark_idx += 1;
+                                            current_landmarks.push([]);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (screen_pos == screen_pos && frame_updated) {
                     const gl = ImGui_Impl.gl;
 
-                    var x = ImGui.GetIO().MousePos.x-screen_pos.x;
-                    var y = ImGui.GetIO().MousePos.y-screen_pos.y;
                     var pixels = GetOriginalPixels(current_texture_image);
+                    for (let i=0; i<current_landmarks.length; i++) {
+                        for (let j=0; j<current_landmarks[i].length; j++) {
+                            DrawPoint(current_texture_image, pixels, current_landmarks[i][j].x, current_landmarks[i][j].y, -1, -1);
+                            var j2 = j+1;                            
+                            if (j2 >= num_landmarks) 
+                                j2 = 0;
+                            if (j2 >= current_landmarks[i].length)
+                                continue;
+                            DrawThinLine(current_landmarks[i][j].x, current_landmarks[i][j].y, 
+                                    current_landmarks[i][j2].x, current_landmarks[i][j2].y,
+                                    pixels, current_texture_image.width, current_texture_image.height, 
+                                    -1, -1);
 
-                    DrawPoint(current_texture_image, pixels, x, y, plot_width, plot_height);
-                    DrawThinLine(x, y, x+20, y+20, pixels, current_texture_image.width, current_texture_image.height, plot_width, plot_height);
+                        }
+                    }
+                    // DrawThinLine(x, y, x+20, y+20, pixels, current_texture_image.width, current_texture_image.height, plot_width, plot_height);
 
                     UpdateTexture(current_texture_image, pixels, gl);
                 }
+
+                // if (screen_pos == screen_pos) {
+                //     const gl = ImGui_Impl.gl;
+
+                //     var x = ImGui.GetIO().MousePos.x-screen_pos.x;
+                //     var y = ImGui.GetIO().MousePos.y-screen_pos.y;
+                //     var pixels = GetOriginalPixels(current_texture_image);
+
+                //     DrawPoint(current_texture_image, pixels, x, y, plot_width, plot_height);
+                //     DrawThinLine(x, y, x+20, y+20, pixels, current_texture_image.width, current_texture_image.height, plot_width, plot_height);
+
+                //     UpdateTexture(current_texture_image, pixels, gl);
+                // }
 
                 ImGui.Image(current_texture_image.gl_texture, new imgui_js_1.ImVec2(plot_width, plot_height));
             }
@@ -795,9 +939,14 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             current_dataset = 0;
             all_datasets = null;
             current_image = 0;
+            current_landmark_idx = 0;
+            current_boxes = [];
+            current_boxes.push([]);
             all_images = null;
             dataset_name = '';
             deleting_dataset = false;
+            frame_updated = false;
+            drag_status = new DraggingStatus();
             /* static */ f = 0.0;
             /* static */ counter = 0;
             done = false;
