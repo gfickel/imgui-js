@@ -8,7 +8,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             step((generator = generator.apply(thisArg, _arguments || [])).next());
         });
     };
-    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, annotating_active, annotation_mode, num_landmarks, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset, hal_image, current_texture_image, current_landmarks, current_landmark_idx, current_boxes, drag_status, frame_updated, image_scale, scale_image_to_window, _static, Static;
+    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, annotating_active, num_landmarks, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset, hal_image, current_texture_image, current_landmarks, current_landmark_idx, current_boxes, drag_status, frame_updated, image_scale, scale_image_to_window, _static, Static;
     var __moduleName = context_1 && context_1.id;
     function LoadArrayBuffer(url) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -108,8 +108,8 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         y1 = Math.round(y1*scale_y);
         x2 = Math.round(x2*scale_x);
         y2 = Math.round(y2*scale_y);
-        if (x1 < 0 || y1 < 0 || x1 >= width || y1 >= height)
-            return;
+        // if (x1 < 0 || y1 < 0 || x1 >= width || y1 >= height)
+        //     return;
         var dx = Math.abs(x2 - x1);
         var dy = Math.abs(y2 - y1);
         var sx = (x1 < x2) ? 1 : -1;
@@ -679,22 +679,27 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         if (annotating_active) {
             ImGui.Begin("Annotate Image"); 
             var num_images = 0;
-            if (all_images)
+            var image_id = " ";
+            if (all_images) {
                 num_images = all_images.length;
+                image_id = all_images[current_image]["id"].toString();
+            }
+            
+            ImGui.Text("Current Image: "+current_image.toString()+"/"+num_images.toString()+" - ID "+image_id);
+            
+            const annotation_mode = STATIC("annotation_mode", 0);
 
-            ImGui.Text("Current Image / All Images: "+current_image.toString()+"/"+num_images.toString());
-
-            var bbox_active      = (annotation_mode==0);
-            var landmarks_active = (annotation_mode==1);
-            var ocrs_active      = (annotation_mode==2);
+            var bbox_active      = (annotation_mode.value==0);
+            var landmarks_active = (annotation_mode.value==1);
+            var ocrs_active      = (annotation_mode.value==2);
             if (ImGui.Checkbox("Bounding Box", (value = bbox_active) => bbox_active = value))
-                annotation_mode = 0;
+                annotation_mode.value = 0;
             ImGui.SameLine();
             if (ImGui.Checkbox("Landmarks", (value = landmarks_active) => landmarks_active = value))
-                annotation_mode = 1;
+                annotation_mode.value = 1;
             ImGui.SameLine();
             if (ImGui.Checkbox("OCRs", (value = ocrs_active) => ocrs_active = value))
-                annotation_mode = 2;
+                annotation_mode.value = 2;
 
             if (landmarks_active) {
                 var num_landmarks_str = num_landmarks.toString();
@@ -851,6 +856,11 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     // }
 
                     console.log("Code to anno bounding box");
+                } else if(ocrs_active) {
+                    console.log("Code to anno ocrs");
+                    // for (let i=0; i<current_landmarks.length; i++) {
+                    //     
+                    // }
                 }
 
                 if (screen_pos == screen_pos && frame_updated) {
@@ -1133,7 +1143,6 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             show_gamepad_window = false;
             show_movie_window = false;
             annotating_active = true;
-            annotation_mode = 0;
             num_landmarks = 4;
             upload_images = false;
             current_dataset = 0;
