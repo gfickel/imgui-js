@@ -8,7 +8,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             step((generator = generator.apply(thisArg, _arguments || [])).next());
         });
     };
-    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, annotating_active, annotation_mode, num_landmarks, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset, hal_image, current_texture_image, current_landmarks, current_landmark_idx, current_boxes, drag_status, frame_updated;
+    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, annotating_active, annotation_mode, num_landmarks, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset, hal_image, current_texture_image, current_landmarks, current_landmark_idx, current_boxes, drag_status, frame_updated, image_scale, scale_image_to_window, _static, Static;
     var __moduleName = context_1 && context_1.id;
     function LoadArrayBuffer(url) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -377,7 +377,9 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         });
     }
 
-    
+    function STATIC(key, value) {
+        return _static[key] || (_static[key] = new Static(value));
+    }
 
     // Main loop
     function _loop(time) {
@@ -577,15 +579,27 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 }
             }
 
+
+            ImGui.Checkbox("Scale Image to Window", (value = scale_image_to_window) => scale_image_to_window = value);
+            const image_scale = STATIC("image_scale", 0.75);
+            ImGui.PushItemWidth(200);
+            if (ImGui.SliderFloat("##Image Scale", (value = image_scale.value) => image_scale.value = value, 0.1, 4.0, "Image Scale = %.3f")) {
+                scale_image_to_window = false;
+            }
+
             if (current_texture_image && current_texture_image.gl_texture) {
-                var max_size = 500;
                 var max_dim = current_texture_image.width;
                 if (max_dim < current_texture_image.height) 
                     max_dim = current_texture_image.height;
                 var im_cols = current_texture_image.width;
                 var im_rows = current_texture_image.height;
 
-                var scale = max_size/max_dim;
+                var scale = image_scale.value;
+                if (scale_image_to_window) {
+                    scale =  ImGui.GetContentRegionAvailWidth() / current_texture_image.width;
+                    if (scale*current_texture_image.width < 10) scale = 1;
+                }
+                console.log(scale, current_texture_image.width, ImGui.GetContentRegionAvailWidth());
                 var plot_width = Math.round(current_texture_image.width*scale);
                 var plot_height = Math.round(current_texture_image.height*scale);
                 var screen_pos = ImGui.GetCursorScreenPos();
@@ -941,8 +955,17 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             deleting_dataset = false;
             frame_updated = false;
             drag_status = new DraggingStatus();
+            image_scale = 0.75;
+            scale_image_to_window = true;
             /* static */ f = 0.0;
             /* static */ counter = 0;
+            Static = class Static {
+                constructor(value) {
+                    this.value = value;
+                }
+            };
+            _static = {};
+
             done = false;
             source = [
                 "ImGui.Text(\"Hello, world!\");",
