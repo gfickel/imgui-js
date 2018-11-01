@@ -177,7 +177,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
     // **************************************************************
 
 
-    function Box(x1, y1, x2, y2, x3, y3, x4, y4) {
+    function Box(x1, y1, x2, y2, x3, y3, x4, y4, label) {
         this.x1 = x1;
         this.y1 = y1;
         this.x2 = x2;
@@ -186,6 +186,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         this.y3 = y3;
         this.x4 = x4;
         this.y4 = y4;
+        this.label = label;
     }
 
     function DraggingStatus() {
@@ -197,10 +198,76 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         this.dy = 0;
     }
 
-    function Landmark(x, y) {
+    function Landmark(x, y, label) {
         this.x = x;
         this.y = y;
+        this.label = label;
     }
+
+    function BoxesFromAnnotation() {
+        var anno = [];
+        for (let i=0; i<all_images[current_image]['boxes'].length; i++) {
+            anno.push( new Box(all_images[current_image]['boxes'][i]['x1'],
+                               all_images[current_image]['boxes'][i]['y1'],
+                               all_images[current_image]['boxes'][i]['x2'],
+                               all_images[current_image]['boxes'][i]['y2'],
+                               all_images[current_image]['boxes'][i]['x3'],
+                               all_images[current_image]['boxes'][i]['y3'],
+                               all_images[current_image]['boxes'][i]['x4'],
+                               all_images[current_image]['boxes'][i]['y4'],
+                               all_images[current_image]['boxes'][i]['label']) );
+        }
+
+        return anno;
+    }
+
+    function LandmarksFromAnnotation() {
+        var anno = [];
+        console.log("Fuck", all_images);
+        for (let i=0; i<all_images[current_image]["landmarks"].length; i++) {
+            var curr_lands = []
+            for (let j=0; j<all_images[current_image]["landmarks"][i]["points"].length; j++) {
+                curr_lands.push( new Landmark(all_images[current_image]["landmarks"][i]["points"][j]["x"],
+                                              all_images[current_image]["landmarks"][i]["points"][j]["y"],
+                                              all_images[current_image]["landmarks"][i]["label"]) );
+            }
+            anno.push(curr_lands);
+        }
+        return anno;
+    }
+
+    function UpdateAnnotation(boxes, landmarks) {
+        all_images[current_image]["boxes"] = []
+        for (let i=0; i<boxes.length; i++) {
+            var box = {};
+            box["x1"] = boxes[i].x1;
+            box["y1"] = boxes[i].y1;
+            box["x2"] = boxes[i].x2;
+            box["y2"] = boxes[i].y2;
+            box["x3"] = boxes[i].x3;
+            box["y3"] = boxes[i].y3;
+            box["x4"] = boxes[i].x4;
+            box["y4"] = boxes[i].y4;
+            box["label"] = boxes[i].label;
+            all_images[current_images]["boxes"].push(box);
+        }
+
+        all_images[current_image]["landmarks"] = []
+        for (let i=0; i<landmarks.length; i++) {
+            var land = [];
+            for (let j=0; j<landmarks[i].length; j++) {
+                var pt = {};
+                pt["x"] = landmarks[i][j].x;
+                pt["y"] = landmarks[i][j].y;
+                land.push(pt);
+            }
+            var land_anno = {};
+            land_anno["label"] = landmarks[i].label;
+            land_anno["points"] = land;
+            all_images[current_image]["landmarks"].push(land_anno);
+        }
+    }
+
 
     function UpdateDraggingAnno(x, y) {
         if (drag_status.landmark_idx < 0 || drag_status.landmark_idx >= current_landmarks.length) {
@@ -240,6 +307,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         Http.send();
         Http.onload=(e)=>{
             all_datasets = Http.response['datasets'];
+            console.log(all_datasets);
         }
     }
 
@@ -275,8 +343,8 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         var url = "http://192.168.1.42:8094/annotator_supreme/";
         current_texture_image = new TextureImage(url+all_images[current_image]['image_url'], gl);
 
-        current_boxes = [];
-        current_landmarks = [];
+        current_boxes = BoxesFromAnnotation();
+        current_landmarks = LandmarksFromAnnotation();
         current_landmark_idx = 0;
     }
 
@@ -291,10 +359,64 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         Http.send();
         Http.onload=(e)=>{
             all_images = Http.response['annotations'];
-            console.log(all_images);
             current_image = 0;
             LoadCurrentImage();
         }
+    }
+
+    function UploadAnnotations() {
+        if (current_image < 0 || current_image >= all_images.length)
+            return;
+
+        var id_dataset = all_datasets[current_dataset]["id"].toString();
+        var id = all_images[current_image]["id"].toString();
+        UpdateAnnotation(current_boxes, current_landmarks);
+        const Http = new XMLHttpRequest();
+        const url='http://192.168.1.42:8094/annotator_supreme/annotation/'+id_dataset+'/'+id;
+        Http.open("PATCH", url, true);
+        
+        var data = {}
+        data.ocrs = [];
+        data.boxes = [];
+        data.landmarks = [];
+
+        for (let i=0; i<current_landmarks.length; i++) {
+            var curr_land = {}
+            if (current_landmarks[i].length == 0)
+                continue;
+
+            curr_land["label"] = "";
+            curr_land["points"] = []
+            for (let j=0; j<current_landmarks[i].length; j++) {
+                var pt = {}
+                pt["x"] = current_landmarks[i][j].x;
+                pt["y"] = current_landmarks[i][j].y;
+                curr_land["points"].push(pt);
+            }
+            data.landmarks.push(curr_land);
+        }
+
+        for (let i=0; i<current_boxes.length; i++) {
+            var box = {};
+            box.x1 = current_boxes[i].x1;
+            box.y1 = current_boxes[i].y1;
+            box.x2 = current_boxes[i].x2;
+            box.y2 = current_boxes[i].y2;
+            box.x3 = current_boxes[i].x3;
+            box.y3 = current_boxes[i].y3;
+            box.x4 = current_boxes[i].x4;
+            box.y4 = current_boxes[i].y4;
+            box.label = '';
+            data.boxes.push(box);
+        }
+
+        var json = JSON.stringify(data);
+        Http.setRequestHeader("Content-Type", "application/json; charset=utf-8");
+        Http.send(json);
+        Http.onload=(e)=>{
+            console.log("UploadAnnotations done!");
+        }
+
     }
         
     function main() {
@@ -503,16 +625,16 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
             for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++) {
                 if (ImGui.IsKeyPressed(i) && i==37) {
+                    UploadAnnotations();
                     current_image -= 1;
                     if (current_image < 0) 
                         current_image = 0;
-                    console.log("Left", i);
                     LoadCurrentImage();
                 } else if (ImGui.IsKeyPressed(i) && i==39) {
+                    UploadAnnotations();
                     current_image += 1;
                     if (current_image >= all_images.length)
                         current_image = all_images.length-1;
-                    console.log("Right", i);
                     LoadCurrentImage();
                 }
             }
@@ -609,57 +731,62 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
 
                 const io = ImGui.GetIO();
-                if (ImGui.IsMouseDragging()) {
-                    console.log("Mouse is dragging");
-                    if (drag_status.dragging == false) {
-                        drag_status.dragging = true;
-                        drag_status.dx = drag_status.dy = 0;
+                if (landmarks_active) {
+                    if (ImGui.IsMouseDragging()) {
+                        console.log("Mouse is dragging");
+                        if (drag_status.dragging == false) {
+                            drag_status.dragging = true;
+                            drag_status.dx = drag_status.dy = 0;
+                                
+                            var closest_landmark =  GetClosestLandmark(
+                                            (io.MousePos.x-screen_pos.x)/scale, 
+                                            (io.MousePos.y-screen_pos.y)/scale, 30);
                             
-                        var closest_landmark =  GetClosestLandmark(
-                                        (io.MousePos.x-screen_pos.x)/scale, 
-                                        (io.MousePos.y-screen_pos.y)/scale, 30);
+                            drag_status.landmark_idx = closest_landmark[0];
+                            drag_status.landmark_pt_idx = closest_landmark[1];
+                        }
                         
-                        drag_status.landmark_idx = closest_landmark[0];
-                        drag_status.landmark_pt_idx = closest_landmark[1];
-                    }
-                    
-                    var x = (io.MousePos.x-screen_pos.x)/scale;
-                    var y = (io.MousePos.y-screen_pos.y)/scale;
-                    UpdateDraggingAnno(x, y);
-                    frame_updated = true;
-                } 
-                else { 
-                    if (drag_status.dragging) { // I'm stoping the dragging
+                        var x = (io.MousePos.x-screen_pos.x)/scale;
+                        var y = (io.MousePos.y-screen_pos.y)/scale;
+                        UpdateDraggingAnno(x, y);
                         frame_updated = true;
-                        drag_status.landmark_idx = -1;
-                        drag_status.landmark_pt_idx = -1;
-                        drag_status.dragging = false;
                     } 
-                    else { // normal case, there was no dragging on previous frame
-                        if (current_landmarks.length == 0)
-                            current_landmarks.push([]);
-                        if (current_landmarks[current_landmark_idx].length < num_landmarks) {
-                            for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++) {
-                                if (ImGui.IsMouseReleased(i)) {
-                                    if ( (io.MousePos.x-screen_pos.x) >= 0 &&
-                                         (io.MousePos.y-screen_pos.y) >= 0 && 
-                                         (io.MousePos.x-screen_pos.x)/scale <= im_cols &&
-                                         (io.MousePos.y-screen_pos.y)/scale <= im_rows) 
-                                    {
-                                        current_landmarks[current_landmark_idx].push(new Landmark(
-                                                (io.MousePos.x-screen_pos.x)/scale,
-                                                (io.MousePos.y-screen_pos.y)/scale));
-                                        frame_updated = true;
-                                        console.log(current_landmarks);
-                                        if (current_landmarks[current_landmark_idx].length == num_landmarks) {
-                                            current_landmark_idx += 1;
-                                            current_landmarks.push([]);
+                    else { 
+                        if (drag_status.dragging) { // I'm stoping the dragging
+                            frame_updated = true;
+                            drag_status.landmark_idx = -1;
+                            drag_status.landmark_pt_idx = -1;
+                            drag_status.dragging = false;
+                        } 
+                        else { // normal case, there was no dragging on previous frame
+                            if (current_landmarks.length == 0)
+                                current_landmarks.push([]);
+                            if (current_landmarks[current_landmark_idx].length < num_landmarks) {
+                                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++) {
+                                    if (ImGui.IsMouseReleased(i)) {
+                                        if ( (io.MousePos.x-screen_pos.x) >= 0 &&
+                                             (io.MousePos.y-screen_pos.y) >= 0 && 
+                                             (io.MousePos.x-screen_pos.x)/scale <= im_cols &&
+                                             (io.MousePos.y-screen_pos.y)/scale <= im_rows) 
+                                        {
+                                            current_landmarks[current_landmark_idx].push(new Landmark(
+                                                    (io.MousePos.x-screen_pos.x)/scale,
+                                                    (io.MousePos.y-screen_pos.y)/scale));
+                                            frame_updated = true;
+                                            console.log(current_landmarks);
+                                            if (current_landmarks[current_landmark_idx].length == num_landmarks) {
+                                                current_landmark_idx += 1;
+                                                current_landmarks.push([]);
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }
+                }
+                else if (bbox_active) {
+                    console.log("Code to anno bounding box");
                 }
 
                 if (screen_pos == screen_pos && frame_updated) {
@@ -949,6 +1076,8 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             current_landmark_idx = 0;
             current_boxes = [];
             current_boxes.push([]);
+            current_landmarks = [];
+            current_landmarks.push([]);
             all_images = null;
             dataset_name = '';
             deleting_dataset = false;
