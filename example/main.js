@@ -345,7 +345,8 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
         current_boxes = BoxesFromAnnotation();
         current_landmarks = LandmarksFromAnnotation();
-        current_landmark_idx = 0;
+        current_landmark_idx = current_landmarks.length;
+        current_landmarks.push([]);
         frame_updated = true;
     }
 
@@ -761,6 +762,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                         else { // normal case, there was no dragging on previous frame
                             if (current_landmarks.length == 0)
                                 current_landmarks.push([]);
+                            
                             if (current_landmarks[current_landmark_idx].length < num_landmarks) {
                                 for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++) {
                                     if (ImGui.IsMouseReleased(i)) {
@@ -773,7 +775,6 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                                                     (io.MousePos.x-screen_pos.x)/scale,
                                                     (io.MousePos.y-screen_pos.y)/scale));
                                             frame_updated = true;
-                                            console.log(current_landmarks);
                                             if (current_landmarks[current_landmark_idx].length == num_landmarks) {
                                                 current_landmark_idx += 1;
                                                 current_landmarks.push([]);
@@ -791,7 +792,6 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
                 if (screen_pos == screen_pos && frame_updated) {
                     const gl = ImGui_Impl.gl;
-                    console.log("Updating texture");
 
                     var pixels = GetOriginalPixels(current_texture_image);
                     for (let i=0; i<current_landmarks.length; i++) {
