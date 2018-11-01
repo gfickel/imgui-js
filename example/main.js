@@ -588,18 +588,17 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             }
 
             if (current_texture_image && current_texture_image.gl_texture) {
-                var max_dim = current_texture_image.width;
-                if (max_dim < current_texture_image.height) 
-                    max_dim = current_texture_image.height;
                 var im_cols = current_texture_image.width;
                 var im_rows = current_texture_image.height;
 
                 var scale = image_scale.value;
                 if (scale_image_to_window) {
                     scale =  ImGui.GetContentRegionAvailWidth() / current_texture_image.width;
+                    if (scale > ImGui.GetContentRegionAvail().y / current_texture_image.height)
+                        scale = ImGui.GetContentRegionAvail().y / current_texture_image.height;
+
                     if (scale*current_texture_image.width < 10) scale = 1;
                 }
-                console.log(scale, current_texture_image.width, ImGui.GetContentRegionAvailWidth());
                 var plot_width = Math.round(current_texture_image.width*scale);
                 var plot_height = Math.round(current_texture_image.height*scale);
                 var screen_pos = ImGui.GetCursorScreenPos();
