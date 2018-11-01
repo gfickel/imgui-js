@@ -563,9 +563,18 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
             if (landmarks_active) {
                 var num_landmarks_str = num_landmarks.toString();
+                ImGui.PushItemWidth(30);
                 ImGui.InputText("##input_landmarks_num", (value = num_landmarks_str) => num_landmarks_str = value);
+                ImGui.SameLine();
+                ImGui.Text("Landmarks Number");
                 num_landmarks = parseInt(num_landmarks_str);
                 console.log("Number of landmarks", num_landmarks);
+
+                ImGui.SameLine();
+                if (ImGui.Button("Delete Landmarks")) {
+                    current_landmarks = []
+                    current_landmark_idx = 0;
+                }
             }
 
             if (current_texture_image && current_texture_image.gl_texture) {
@@ -656,26 +665,11 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                                     current_landmarks[i][j2].x, current_landmarks[i][j2].y,
                                     pixels, current_texture_image.width, current_texture_image.height, 
                                     -1, -1);
-
                         }
                     }
-                    // DrawThinLine(x, y, x+20, y+20, pixels, current_texture_image.width, current_texture_image.height, plot_width, plot_height);
 
                     UpdateTexture(current_texture_image, pixels, gl);
                 }
-
-                // if (screen_pos == screen_pos) {
-                //     const gl = ImGui_Impl.gl;
-
-                //     var x = ImGui.GetIO().MousePos.x-screen_pos.x;
-                //     var y = ImGui.GetIO().MousePos.y-screen_pos.y;
-                //     var pixels = GetOriginalPixels(current_texture_image);
-
-                //     DrawPoint(current_texture_image, pixels, x, y, plot_width, plot_height);
-                //     DrawThinLine(x, y, x+20, y+20, pixels, current_texture_image.width, current_texture_image.height, plot_width, plot_height);
-
-                //     UpdateTexture(current_texture_image, pixels, gl);
-                // }
 
                 ImGui.Image(current_texture_image.gl_texture, new imgui_js_1.ImVec2(plot_width, plot_height));
             }
