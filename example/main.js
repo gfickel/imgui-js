@@ -268,7 +268,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
     }
 
 
-    function UpdateDraggingAnno(x, y) {
+    function UpdateDraggingAnno(drag_status, x, y) {
         if (drag_status.landmark_idx < 0 || drag_status.landmark_idx >= current_landmarks.length) {
             return false;
         }
@@ -678,14 +678,23 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         }
         if (annotating_active) {
             ImGui.Begin("Annotate Image"); 
+            var num_images = 0;
+            if (all_images)
+                num_images = all_images.length;
 
-            var bbox_active = (annotation_mode==0);
+            ImGui.Text("Current Image / All Images: "+current_image.toString()+"/"+num_images.toString());
+
+            var bbox_active      = (annotation_mode==0);
             var landmarks_active = (annotation_mode==1);
+            var ocrs_active      = (annotation_mode==2);
             if (ImGui.Checkbox("Bounding Box", (value = bbox_active) => bbox_active = value))
                 annotation_mode = 0;
             ImGui.SameLine();
-            if (ImGui.Checkbox("Landmarks Box", (value = landmarks_active) => landmarks_active = value))
+            if (ImGui.Checkbox("Landmarks", (value = landmarks_active) => landmarks_active = value))
                 annotation_mode = 1;
+            ImGui.SameLine();
+            if (ImGui.Checkbox("OCRs", (value = ocrs_active) => ocrs_active = value))
+                annotation_mode = 2;
 
             if (landmarks_active) {
                 var num_landmarks_str = num_landmarks.toString();
@@ -699,6 +708,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 if (ImGui.Button("Delete Landmarks")) {
                     current_landmarks = []
                     current_landmark_idx = 0;
+                    frame_updated = true;
                 }
             }
 
@@ -749,7 +759,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                         
                         var x = (io.MousePos.x-screen_pos.x)/scale;
                         var y = (io.MousePos.y-screen_pos.y)/scale;
-                        if( UpdateDraggingAnno(x, y) )
+                        if( UpdateDraggingAnno(drag_status, x, y) )
                             frame_updated = true;
                     } 
                     else { 
@@ -787,6 +797,59 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     }
                 }
                 else if (bbox_active) {
+                    // if (ImGui.IsMouseDragging()) {
+                    //     console.log("Mouse is dragging");
+                    //     if (drag_status.dragging == false) {
+                    //         drag_status.dragging = true;
+                    //         drag_status.dx = drag_status.dy = 0;
+                    //             
+                    //         var closest_box =  GetClosestBox(
+                    //                         (io.MousePos.x-screen_pos.x)/scale, 
+                    //                         (io.MousePos.y-screen_pos.y)/scale, 30);
+                    //         
+                    //         drag_status.box_idx = closest_box[0];
+                    //         drag_status.box_pt_idx = closest_box[1];
+                    //     }
+                    //     
+                    //     var x = (io.MousePos.x-screen_pos.x)/scale;
+                    //     var y = (io.MousePos.y-screen_pos.y)/scale;
+                    //     if( UpdateDraggingBox(drag_status, x, y) )
+                    //         frame_updated = true;
+                    // } 
+                    // else { 
+                    //     if (drag_status.dragging) { // I'm stoping the dragging
+                    //         frame_updated = true;
+                    //         drag_status.box_idx = -1;
+                    //         drag_status.box_pt_idx = -1;
+                    //         drag_status.dragging = false;
+                    //     } 
+                    //     else { // normal case, there was no dragging on previous frame
+                    //         if (current_boxes.length == 0)
+                    //             current_boxes.push([]);
+                    //         
+                    //         if (current_boxes[current_box_idx].length < 4) {
+                    //             for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++) {
+                    //                 if (ImGui.IsMouseReleased(i)) {
+                    //                     if ( (io.MousePos.x-screen_pos.x) >= 0 &&
+                    //                          (io.MousePos.y-screen_pos.y) >= 0 && 
+                    //                          (io.MousePos.x-screen_pos.x)/scale <= im_cols &&
+                    //                          (io.MousePos.y-screen_pos.y)/scale <= im_rows) 
+                    //                     {
+                    //                         current_landmarks[current_landmark_idx].push(new Landmark(
+                    //                                 (io.MousePos.x-screen_pos.x)/scale,
+                    //                                 (io.MousePos.y-screen_pos.y)/scale));
+                    //                         frame_updated = true;
+                    //                         if (current_landmarks[current_landmark_idx].length == num_landmarks) {
+                    //                             current_landmark_idx += 1;
+                    //                             current_landmarks.push([]);
+                    //                         }
+                    //                     }
+                    //                 }
+                    //             }
+                    //         }
+                    //     }
+                    // }
+
                     console.log("Code to anno bounding box");
                 }
 
