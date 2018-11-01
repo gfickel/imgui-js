@@ -223,7 +223,6 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
     function LandmarksFromAnnotation() {
         var anno = [];
-        console.log("Fuck", all_images);
         for (let i=0; i<all_images[current_image]["landmarks"].length; i++) {
             var curr_lands = []
             for (let j=0; j<all_images[current_image]["landmarks"][i]["points"].length; j++) {
@@ -347,6 +346,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         current_boxes = BoxesFromAnnotation();
         current_landmarks = LandmarksFromAnnotation();
         current_landmark_idx = 0;
+        frame_updated = true;
     }
 
     function LoadImages() {
@@ -810,11 +810,13 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     }
 
                     UpdateTexture(current_texture_image, pixels, gl);
+                    // Did I updated the correct frame or the image is not loaded yet?
+                    if (current_texture_image.width > 10)
+                        frame_updated = false;
                 }
 
                 ImGui.Image(current_texture_image.gl_texture, new imgui_js_1.ImVec2(plot_width, plot_height));
             }
-            frame_updated = false;
             ImGui.End();
         }
 
