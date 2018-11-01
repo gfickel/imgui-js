@@ -271,13 +271,14 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
     function UpdateDraggingAnno(x, y) {
         if (drag_status.landmark_idx < 0 || drag_status.landmark_idx >= current_landmarks.length) {
-            return;
+            return false;
         }
 
         var land_idx = drag_status.landmark_idx;
         var pt_idx = drag_status.landmark_pt_idx;
         current_landmarks[land_idx][pt_idx].x = x;
         current_landmarks[land_idx][pt_idx].y = y;
+        return true;
     }
 
 
@@ -692,7 +693,6 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 ImGui.SameLine();
                 ImGui.Text("Landmarks Number");
                 num_landmarks = parseInt(num_landmarks_str);
-                console.log("Number of landmarks", num_landmarks);
 
                 ImGui.SameLine();
                 if (ImGui.Button("Delete Landmarks")) {
@@ -748,8 +748,8 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                         
                         var x = (io.MousePos.x-screen_pos.x)/scale;
                         var y = (io.MousePos.y-screen_pos.y)/scale;
-                        UpdateDraggingAnno(x, y);
-                        frame_updated = true;
+                        if( UpdateDraggingAnno(x, y) )
+                            frame_updated = true;
                     } 
                     else { 
                         if (drag_status.dragging) { // I'm stoping the dragging
@@ -791,6 +791,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
                 if (screen_pos == screen_pos && frame_updated) {
                     const gl = ImGui_Impl.gl;
+                    console.log("Updating texture");
 
                     var pixels = GetOriginalPixels(current_texture_image);
                     for (let i=0; i<current_landmarks.length; i++) {
@@ -813,7 +814,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
                 ImGui.Image(current_texture_image.gl_texture, new imgui_js_1.ImVec2(plot_width, plot_height));
             }
-
+            frame_updated = false;
             ImGui.End();
         }
 
@@ -1081,7 +1082,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             all_images = null;
             dataset_name = '';
             deleting_dataset = false;
-            frame_updated = false;
+            frame_updated = true;
             drag_status = new DraggingStatus();
             image_scale = 0.75;
             scale_image_to_window = true;
