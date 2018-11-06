@@ -308,7 +308,9 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                                               all_images[current_image]["landmarks"][i]["points"][j]["y"],
                                               all_images[current_image]["landmarks"][i]["label"]) );
             }
-            anno.push(curr_lands);
+            if (curr_lands.length > 0) {
+                anno.push(curr_lands);
+            }
         }
         return anno;
     }
@@ -341,7 +343,9 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             var land_anno = {};
             land_anno["label"] = landmarks[i].label;
             land_anno["points"] = land;
-            all_images[current_image]["landmarks"].push(land_anno);
+            if (land.length > 0) {
+                all_images[current_image]["landmarks"].push(land_anno);
+            }
         }
     }
 
