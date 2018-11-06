@@ -89,8 +89,6 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         y = Math.round(y*scale_y);
         if (x<0 || y<0) return;
 
-        console.log(ptSize, textureImage.width, canvasWidth, scale_x, scale_y, pt_size_x, pt_size_y);
-
         for (var i=y-pt_size_y; i<y+pt_size_y; i++) {
             for (var j=x-pt_size_x; j<x+pt_size_x; j++) {
                 if (i<=0 || i>=textureImage.height || j<0 || j>= textureImage.width)
@@ -145,30 +143,77 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
 
     // http://members.chello.at/~easyfilter/bresenham.html
-    // function plotLineWidth((int x0, int y0, int x1, int y1, float wd)
-    // { 
-    //    int dx = abs(x1-x0), sx = x0 < x1 ? 1 : -1; 
-    //    int dy = abs(y1-y0), sy = y0 < y1 ? 1 : -1; 
-    //    int err = dx-dy, e2, x2, y2;                          /* error value e_xy */
-    //    float ed = dx+dy == 0 ? 1 : sqrt((float)dx*dx+(float)dy*dy);
-    //    
-    //    for (wd = (wd+1)/2; ; ) {                                   /* pixel loop */
-    //       setPixelColor(x0,y0,max(0,255*(abs(err-dx+dy)/ed-wd+1)));
-    //       e2 = err; x2 = x0;
-    //       if (2*e2 >= -dx) {                                           /* x step */
-    //          for (e2 += dy, y2 = y0; e2 < ed*wd && (y1 != y2 || dx > dy); e2 += dx)
-    //             setPixelColor(x0, y2 += sy, max(0,255*(abs(e2)/ed-wd+1)));
-    //          if (x0 == x1) break;
-    //          e2 = err; err -= dy; x0 += sx; 
-    //       } 
-    //       if (2*e2 <= dy) {                                            /* y step */
-    //          for (e2 = dx-e2; e2 < ed*wd && (x1 != x2 || dx < dy); e2 += dy)
-    //             setPixelColor(x2 += sx, y0, max(0,255*(abs(e2)/ed-wd+1)));
-    //          if (y0 == y1) break;
-    //          err += dx; y0 += sy; 
-    //       }
-    //    }
-    // }
+    function DrawLine (x0, y0, x1, y1, pixels, textureImage, canvasWidth, canvasHeight, wd)
+    { 
+        var dx = Math.abs(x1-x0);
+        var sx = x0 < x1 ? 1 : -1; 
+        var dy = Math.abs(y1-y0)
+        var sy = y0 < y1 ? 1 : -1; 
+        var err = dx-dy
+        var e2;
+        var x2;
+        var y2;
+        var ed = dx+dy == 0 ? 1.0 : Math.sqrt(dx*dx+dy*dy);
+
+        x0 = Math.round(x0);
+        x1 = Math.round(x1);
+        y0 = Math.round(y0);
+        y1 = Math.round(y1);
+
+        var width = textureImage.width;
+        var height = textureImage.height;
+        
+        var scale = width / canvasWidth;
+        wd = Math.round(wd*scale);
+      
+        var num_iter=0;
+        wd = (wd+1)/2; 
+        while (true) {
+            num_iter += 1;
+            // if (num_iter > 4000) break;
+            var idx = Math.round(y0)*width*4 + Math.round(x0)*4;
+            var alpha = Math.round(Math.max(0,255*(Math.abs(err-dx+dy)/ed-wd+1)));
+            pixels[idx+0] = 0;
+            pixels[idx+1] = 0;
+            pixels[idx+2] = 200;
+            // pixels[idx+3] = alpha;
+            e2 = err; x2 = x0;
+            if (2*e2 >= -dx) {                                           /* x step */
+                e2 += dy;
+                y2 = y0;
+                while (e2 < ed*wd && (y1 != y2 || dx > dy)) {
+                // for (e2 += dy, y2 = y0; e2 < ed*wd && (y1 != y2 || dx > dy); e2 += dx) {
+                    y2 = y2+sy;
+                    idx = Math.round(y2)*width*4 + Math.round(x0)*4;
+                    // alpha = Math.round(Math.max(0,255*(Math.abs(e2)/ed-wd+1)));
+                    pixels[idx+0] = 0;
+                    pixels[idx+1] = 0;
+                    pixels[idx+2] = 200;
+                    // pixels[idx+3] = alpha;
+                    e2 += dx;
+                }
+                if (x0 == x1) break;
+                e2 = err; err -= dy; x0 += sx; 
+            } 
+            if (2*e2 <= dy) {                                            /* y step */
+                e2 = dx-e2;
+                // TODO: fix this buggy while...
+                // while (e2 < ed*wd && (x1 != x2 || dx < dy) && count < 1) {
+                // // for (e2 = dx-e2; e2 < ed*wd && (x1 != x2 || dx < dy); e2 += dy) {
+                //     x2 = x2+sx;
+                //     idx = Math.round(y0)*width*4 + Math.round(x2)*4;
+                //     alpha = Math.round(Math.max(0,255*(Math.abs(e2)/ed-wd+1)));
+                //     pixels[idx+0] = 0;
+                //     pixels[idx+1] = 0;
+                //     pixels[idx+2] = 200;
+                //     pixels[idx+3] = alpha;
+                //     e2 += dy;
+                // }
+                if (y0 == y1) break;
+                err += dx; y0 += sy; 
+            }
+        }
+    }
 
     function UpdateTexture(textureImage, pixels, gl) {
         gl.bindTexture(gl.TEXTURE_2D, textureImage.gl_texture);
@@ -721,7 +766,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             
             ImGui.Text("Current Image: "+current_image.toString()+"/"+num_images.toString()+" - ID "+image_id);
             
-            const annotation_mode = STATIC("annotation_mode", 0);
+            const annotation_mode = STATIC("annotation_mode", 1);
 
             var bbox_active      = (annotation_mode.value==0);
             var landmarks_active = (annotation_mode.value==1);
@@ -918,10 +963,11 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                                 j2 = 0;
                             if (j2 >= current_landmarks[i].length)
                                 continue;
-                            DrawThinLine(current_landmarks[i][j].x, current_landmarks[i][j].y, 
+                            
+                            DrawLine (current_landmarks[i][j].x, current_landmarks[i][j].y, 
                                     current_landmarks[i][j2].x, current_landmarks[i][j2].y,
-                                    pixels, current_texture_image.width, current_texture_image.height, 
-                                    -1, -1);
+                                    pixels, current_texture_image, 
+                                    plot_width, plot_height, 4);
                         }
                     }
 
