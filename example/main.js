@@ -143,7 +143,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
 
     // http://members.chello.at/~easyfilter/bresenham.html
-    function DrawLine (x0, y0, x1, y1, pixels, textureImage, canvasWidth, canvasHeight, wd)
+    function DrawLine (x0, y0, x1, y1, pixels, textureImage, canvasWidth, canvasHeight, wd, color)
     { 
         var dx = Math.abs(x1-x0);
         var sx = x0 < x1 ? 1 : -1; 
@@ -173,9 +173,9 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             // if (num_iter > 4000) break;
             var idx = Math.round(y0)*width*4 + Math.round(x0)*4;
             var alpha = Math.round(Math.max(0,255*(Math.abs(err-dx+dy)/ed-wd+1)));
-            pixels[idx+0] = 0;
-            pixels[idx+1] = 0;
-            pixels[idx+2] = 200;
+            pixels[idx+0] = color[0];
+            pixels[idx+1] = color[1];
+            pixels[idx+2] = color[2];
             // pixels[idx+3] = alpha;
             e2 = err; x2 = x0;
             if (2*e2 >= -dx) {                                           /* x step */
@@ -186,9 +186,9 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     y2 = y2+sy;
                     idx = Math.round(y2)*width*4 + Math.round(x0)*4;
                     // alpha = Math.round(Math.max(0,255*(Math.abs(e2)/ed-wd+1)));
-                    pixels[idx+0] = 0;
-                    pixels[idx+1] = 0;
-                    pixels[idx+2] = 200;
+                    pixels[idx+0] = color[0];
+                    pixels[idx+1] = color[1];
+                    pixels[idx+2] = color[2];
                     // pixels[idx+3] = alpha;
                     e2 += dx;
                 }
@@ -595,6 +595,8 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         ImGui_Impl.NewFrame(time);
         ImGui.NewFrame();
 
+        var colors = [[230, 25, 75], [60, 180, 75], [255, 225, 25], [0, 130, 200], [245, 130, 48], [145, 30, 180], [70, 240, 240], [240, 50, 230], [210, 245, 60], [250, 190, 190], [0, 128, 128], [230, 190, 255], [170, 110, 40], [255, 250, 200], [128, 0, 0], [170, 255, 195], [128, 128, 0], [255, 215, 180], [0, 0, 128], [128, 128, 128], [255, 255, 255], [0, 0, 0]];
+
         {
             ImGui.Begin("Annotator Supreme"); 
             ImGui.Text("This is just a proof of concept... so it will be buggy");
@@ -967,7 +969,10 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                             DrawLine (current_landmarks[i][j].x, current_landmarks[i][j].y, 
                                     current_landmarks[i][j2].x, current_landmarks[i][j2].y,
                                     pixels, current_texture_image, 
-                                    plot_width, plot_height, 4);
+                                    plot_width, plot_height, 4, colors[i]);
+                        }
+                        for (let j=0; j<current_landmarks[i].length; j++) {
+                            DrawPoint(current_texture_image, pixels, current_landmarks[i][j].x, current_landmarks[i][j].y, plot_width, plot_height, 4, false);
                         }
                     }
 
