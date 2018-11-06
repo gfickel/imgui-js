@@ -767,9 +767,10 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             var num_images = 0;
             var image_id = " ";
             if (all_images) {
-                
                 num_images = all_images.length;
-                image_id = all_images[current_image]["id"].toString();
+                if (current_image < all_images.length) {
+                    image_id = all_images[current_image]["id"].toString();
+                }
             }
             
             ImGui.Text("Current Image: "+current_image.toString()+"/"+num_images.toString()+" - ID "+image_id);
