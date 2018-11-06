@@ -434,6 +434,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
     }
 
     function LoadImages() {
+        all_images = null;
         var id = all_datasets[current_dataset]["id"].toString();
            
         current_image = -1;
@@ -766,6 +767,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             var num_images = 0;
             var image_id = " ";
             if (all_images) {
+                
                 num_images = all_images.length;
                 image_id = all_images[current_image]["id"].toString();
             }
@@ -832,11 +834,9 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 ImGui.InvisibleButton("Annotation Button", new imgui_js_1.ImVec2(plot_width, plot_height));
                 ImGui.SetCursorScreenPos(screen_pos);
 
-
                 const io = ImGui.GetIO();
                 if (landmarks_active) {
                     if (ImGui.IsMouseDragging()) {
-                        console.log("Mouse is dragging");
                         if (drag_status.dragging == false) {
                             drag_status.dragging = true;
                             drag_status.dx = drag_status.dy = 0;
