@@ -835,7 +835,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                                 
                             var closest_landmark =  GetClosestLandmark(
                                             (io.MousePos.x-screen_pos.x)/scale, 
-                                            (io.MousePos.y-screen_pos.y)/scale, 30);
+                                            (io.MousePos.y-screen_pos.y)/scale, 30/scale);
                             
                             drag_status.landmark_idx = closest_landmark[0];
                             drag_status.landmark_pt_idx = closest_landmark[1];
