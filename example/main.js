@@ -8,7 +8,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             step((generator = generator.apply(thisArg, _arguments || [])).next());
         });
     };
-    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, annotating_active, num_landmarks, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset, hal_image, current_texture_image, current_landmarks, current_landmark_idx, current_boxes, drag_status, frame_updated, image_scale, scale_image_to_window, _static, Static;
+    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, annotating_active, num_landmarks, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset, hal_image, current_texture_image, current_ocrs, current_ocr_idx, current_landmarks, current_landmark_idx, current_boxes, drag_status, frame_updated, image_scale, scale_image_to_window, _static, Static;
     var __moduleName = context_1 && context_1.id;
     function LoadArrayBuffer(url) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -74,10 +74,14 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         return textureImage.pixels.slice();
     }
 
-    function DrawPoint(textureImage, pixels, x, y, canvasWidth, canvasHeight) {
+    function DrawPoint(textureImage, pixels, x, y, canvasWidth, canvasHeight, ptSize, scalePointPosition) {
         var scale_x = textureImage.width / canvasWidth;
         var scale_y = textureImage.height / canvasHeight;
-        if (canvasWidth < 0 || canvasHeight < 0) {
+
+        var pt_size_x = Math.round(ptSize*scale_x);
+        var pt_size_y = Math.round(ptSize*scale_y);
+        
+        if (scalePointPosition == false) {
             scale_x = scale_y = 1;
         }
         
@@ -85,8 +89,10 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         y = Math.round(y*scale_y);
         if (x<0 || y<0) return;
 
-        for (var i=y-5; i<y+5; i++) {
-            for (var j=x-5; j<x+5; j++) {
+        console.log(ptSize, textureImage.width, canvasWidth, scale_x, scale_y, pt_size_x, pt_size_y);
+
+        for (var i=y-pt_size_y; i<y+pt_size_y; i++) {
+            for (var j=x-pt_size_x; j<x+pt_size_x; j++) {
                 if (i<=0 || i>=textureImage.height || j<0 || j>= textureImage.width)
                     continue;
                 var idx = i*textureImage.width*4+j*4
@@ -177,7 +183,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
     // **************************************************************
 
 
-    function Box(x1, y1, x2, y2, x3, y3, x4, y4, label) {
+    function Box(x1, y1, x2, y2, x3, y3, x4, y4, id, label) {
         this.x1 = x1;
         this.y1 = y1;
         this.x2 = x2;
@@ -186,7 +192,21 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         this.y3 = y3;
         this.x4 = x4;
         this.y4 = y4;
+        this.id = id;
         this.label = label;
+    }
+
+    function Landmark(x, y, label) {
+        this.x = x;
+        this.y = y;
+        this.label = label;
+    }
+
+    function OCR(ocr, box_id, box_idx) {
+        this.ocr = ocr;
+        this.box_id = box_id;
+        this.box_idx = box_idx;
+        this.image = null;
     }
 
     function DraggingStatus() {
@@ -198,11 +218,6 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         this.dy = 0;
     }
 
-    function Landmark(x, y, label) {
-        this.x = x;
-        this.y = y;
-        this.label = label;
-    }
 
     function BoxesFromAnnotation() {
         var anno = [];
@@ -215,7 +230,25 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                                all_images[current_image]['boxes'][i]['y3'],
                                all_images[current_image]['boxes'][i]['x4'],
                                all_images[current_image]['boxes'][i]['y4'],
+                               all_images[current_image]['boxes'][i]['id'],
                                all_images[current_image]['boxes'][i]['label']) );
+        }
+
+        return anno;
+    }
+
+    function OCRsFromAnnotation(boxes) {
+        var anno = [];
+        for (let i=0; i<all_images[current_image]['ocrs'].length; i++) {
+            var box_id = all_images[current_image]['ocrs'][i]['box_id'].toString();
+            var box_idx = -1;
+            for (let j=0; j<boxes.length; j++) {
+                if (box_id == boxes[i].id) {
+                    box_idx = j;
+                }
+            }
+
+            anno.push(new OCR(all_images[current_image]['ocrs'][i]['ocr'], box_id, box_idx));
         }
 
         return anno;
@@ -344,6 +377,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         current_texture_image = new TextureImage(url+all_images[current_image]['image_url'], gl);
 
         current_boxes = BoxesFromAnnotation();
+        current_ocrs = [];//OCRsFromAnnotation(current_boxes);
         current_landmarks = LandmarksFromAnnotation();
         current_landmark_idx = current_landmarks.length;
         current_landmarks.push([]);
@@ -856,11 +890,20 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     // }
 
                     console.log("Code to anno bounding box");
-                } else if(ocrs_active) {
+                } else if(ocrs_active) {                   
                     console.log("Code to anno ocrs");
-                    // for (let i=0; i<current_landmarks.length; i++) {
-                    //     
-                    // }
+                    for (let i=0; i<current_ocrs.length; i++) {
+                        if (current_texture_image.width < 10) {
+                            continue;
+                        }
+                        if (current_ocrs[i].image == null) {
+                            var box_idx = current_ocrs[i].box_idx;
+                            current_ocrs[i].image = GetImageCrop(current_texture_image, current_boxes[box_idx]);
+                        }
+                        // ImGui.BeginChild("Namei", imgui_js_1.ImVec2(width,height), false)
+                        ImGui.Image(current_ocrs[i].image, new imgui_js_1.ImVec2(200, 100));
+                        // ImGui.EndChild();
+                    }
                 }
 
                 if (screen_pos == screen_pos && frame_updated) {
@@ -869,7 +912,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     var pixels = GetOriginalPixels(current_texture_image);
                     for (let i=0; i<current_landmarks.length; i++) {
                         for (let j=0; j<current_landmarks[i].length; j++) {
-                            DrawPoint(current_texture_image, pixels, current_landmarks[i][j].x, current_landmarks[i][j].y, -1, -1);
+                            DrawPoint(current_texture_image, pixels, current_landmarks[i][j].x, current_landmarks[i][j].y, plot_width, plot_height, 4, false);
                             var j2 = j+1;                            
                             if (j2 >= num_landmarks) 
                                 j2 = 0;
