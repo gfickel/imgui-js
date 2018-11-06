@@ -799,7 +799,9 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             }
 
 
-            ImGui.Checkbox("Scale Image to Window", (value = scale_image_to_window) => scale_image_to_window = value);
+            if (ImGui.Checkbox("Scale Image to Window", (value = scale_image_to_window) => scale_image_to_window = value)) {
+                frame_updated = true;
+            }
             const image_scale = STATIC("image_scale", 0.75);
             ImGui.PushItemWidth(200);
             if (ImGui.SliderFloat("##Image Scale", (value = image_scale.value) => image_scale.value = value, 0.1, 4.0, "Image Scale = %.3f")) {
