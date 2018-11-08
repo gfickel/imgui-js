@@ -247,11 +247,16 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         this.label = label;
     }
 
-    function OCR(ocr, box_id, box_idx) {
-        this.ocr = ocr;
-        this.box_id = box_id;
-        this.box_idx = box_idx;
-        this.image = null;
+    function OCR(label, field, landmark_id, landmark_idx, image_url, left, ttop) {
+        var url = "http://192.168.1.42:8094/annotator_supreme/";
+        const gl = ImGui_Impl.gl;
+        this.label = label;
+        this.landmark_id = landmark_id;
+        this.landmark_idx = landmark_idx;
+        this.image = new TextureImage(url+image_url, gl);
+        this.left = left;
+        this.top = ttop;
+        console.log(url+image_url);
     }
 
     function DraggingStatus() {
@@ -282,18 +287,26 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         return anno;
     }
 
-    function OCRsFromAnnotation(boxes) {
+    function OCRsFromAnnotation(landmarks) {
         var anno = [];
+
         for (let i=0; i<all_images[current_image]['ocrs'].length; i++) {
-            var box_id = all_images[current_image]['ocrs'][i]['box_id'].toString();
-            var box_idx = -1;
-            for (let j=0; j<boxes.length; j++) {
-                if (box_id == boxes[i].id) {
-                    box_idx = j;
+            var landmark_id = all_images[current_image]['ocrs'][i]['landmark_id'].toString();
+            var landmark_idx = -1;
+            for (let j=0; j<landmarks.length; j++) {
+                if (landmark_id == landmarks[i].id) {
+                    landmark_idx = j;
+                    break;
                 }
             }
 
-            anno.push(new OCR(all_images[current_image]['ocrs'][i]['ocr'], box_id, box_idx));
+            var label = all_images[current_image]['ocrs'][i]['label'];
+            var field = all_images[current_image]['ocrs'][i]['field'];
+            var image_url = all_images[current_image]['ocrs'][i]['ocr_image_url'];
+            var left = all_images[current_image]['ocrs'][i]['ocr_image_left'];
+            var ttop = all_images[current_image]['ocrs'][i]['ocr_image_top'];
+            
+            anno.push(new OCR(label, field, landmark_id, landmark_idx, image_url, left, ttop));
         }
 
         return anno;
@@ -410,6 +423,11 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             }
         }
     }
+
+    function GetOCRImages() {
+        return [];
+    }
+
     function LoadCurrentImage() {
         // TODO: Am I leaking gl textures? And if so, is it thaaaat bad?
         // if (current_texture_image) {
@@ -426,10 +444,11 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         current_texture_image = new TextureImage(url+all_images[current_image]['image_url'], gl);
 
         current_boxes = BoxesFromAnnotation();
-        current_ocrs = [];//OCRsFromAnnotation(current_boxes);
         current_landmarks = LandmarksFromAnnotation();
+        current_ocrs = OCRsFromAnnotation(current_landmarks);
         current_landmark_idx = current_landmarks.length;
         current_landmarks.push([]);
+        console.log("ocrs", current_ocrs);
         frame_updated = true;
     }
 
@@ -813,6 +832,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             ImGui.PushItemWidth(200);
             if (ImGui.SliderFloat("##Image Scale", (value = image_scale.value) => image_scale.value = value, 0.1, 4.0, "Image Scale = %.3f")) {
                 scale_image_to_window = false;
+                frame_updated = true;
             }
 
             if (current_texture_image && current_texture_image.gl_texture) {
@@ -832,8 +852,12 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 var screen_pos = ImGui.GetCursorScreenPos();
                 // This invisible button prevents that we move the whole screen
                 // when clicking and dragging on the image.
-                ImGui.InvisibleButton("Annotation Button", new imgui_js_1.ImVec2(plot_width, plot_height));
-                ImGui.SetCursorScreenPos(screen_pos);
+
+                if (ocrs_active == false) {
+                    ImGui.InvisibleButton("Annotation Button", new imgui_js_1.ImVec2(plot_width, plot_height));
+                    ImGui.SetCursorScreenPos(screen_pos);
+                    ImGui.Image(current_texture_image.gl_texture, new imgui_js_1.ImVec2(plot_width, plot_height));
+                }
 
                 const io = ImGui.GetIO();
                 if (landmarks_active) {
@@ -944,19 +968,63 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     // }
 
                     console.log("Code to anno bounding box");
-                } else if(ocrs_active) {                   
-                    console.log("Code to anno ocrs");
+                } else if(ocrs_active) { 
+                    const ocr_height = STATIC("ocr_height", 200);
+                    var window_width = ImGui.GetContentRegionAvailWidth();
+                    ImGui.PushItemWidth(200);
+                    if (ImGui.SliderInt("##OCR Height", (value = ocr_height.value) => ocr_height.value = value, 80, 400, "OCR Height = %d")) {
+                        scale_image_to_window = false;
+                        frame_updated = true;
+                    }
+                    ImGui.PopItemWidth();
+
+                    var current_width = 0; // keeps the current line width in pixels so that we
+                                           // we can know when to draw on a new line
+                    var ocr_scale = 1.0;
+                    var first_ocr = 0; // saves the first OCR index of the current line. This is
+                                       // needed to 
                     for (let i=0; i<current_ocrs.length; i++) {
-                        if (current_texture_image.width < 10) {
+                        if (current_ocrs[i].image.width < 10) {
                             continue;
                         }
-                        if (current_ocrs[i].image == null) {
-                            var box_idx = current_ocrs[i].box_idx;
-                            current_ocrs[i].image = GetImageCrop(current_texture_image, current_boxes[box_idx]);
+                        
+                        var width = current_ocrs[i].image.width;
+                        var height = current_ocrs[i].image.height;
+                        ocr_scale = (ocr_height.value-25)/height;
+                        current_width += Math.round(width*ocr_scale);
+
+
+                        // Draw the current image
+                        ImGui.Image(current_ocrs[i].image.gl_texture, new imgui_js_1.ImVec2(Math.round(width*ocr_scale), Math.round(height*ocr_scale)));
+                       
+                        // Check the next image to see if it will be on the same line or
+                        // in a newer one
+                        var new_width = 0;
+                        if (i < current_ocrs.length-1) {
+                            var current_scale = (ocr_height.value-25)/current_ocrs[i+1].image.height;
+                            new_width = Math.round(current_ocrs[i+1].image.width*current_scale);
                         }
-                        // ImGui.BeginChild("Namei", imgui_js_1.ImVec2(width,height), false)
-                        ImGui.Image(current_ocrs[i].image, new imgui_js_1.ImVec2(200, 100));
-                        // ImGui.EndChild();
+
+                        // If we cant fill the next image on this line or this is already the last image
+                        if (current_width+new_width >= window_width || i == current_ocrs.length-1) {
+                            // The current width is updated for the next image
+                            current_width = new_width;
+                            // Plot all the ocrs of this line
+                            for (let j=first_ocr; j<=i; j++) {
+                                var current_scale = (ocr_height.value-25)/current_ocrs[j].image.height;
+                                ImGui.PushItemWidth(Math.round(current_ocrs[j].image.width*current_scale));
+                                ImGui.InputText("##ocr"+j.toString(), (value = current_ocrs[j].label) => current_ocrs[j].label = value);
+                                ImGui.PopItemWidth();
+                                // On the last position do not call SameLine. This will make
+                                // the next GUI elemnt to be on a new line
+                                if (j != i) {
+                                    ImGui.SameLine();
+                                }
+                            }
+                            first_ocr = i+1;
+                        } else {
+                            ImGui.SameLine();
+                        }
                     }
                 }
 
@@ -989,7 +1057,6 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                         frame_updated = false;
                 }
 
-                ImGui.Image(current_texture_image.gl_texture, new imgui_js_1.ImVec2(plot_width, plot_height));
             }
             ImGui.End();
         }
