@@ -320,7 +320,8 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             for (let j=0; j<all_images[current_image]["landmarks"][i]["points"].length; j++) {
                 curr_lands.push( new Landmark(all_images[current_image]["landmarks"][i]["points"][j]["x"],
                                               all_images[current_image]["landmarks"][i]["points"][j]["y"],
-                                              all_images[current_image]["landmarks"][i]["label"]) );
+                                              all_images[current_image]["landmarks"][i]["label"],
+                                              all_images[current_image]["landmarks"][i]["id"]) );
             }
             if (curr_lands.length > 0) {
                 anno.push(curr_lands);
@@ -500,6 +501,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
             curr_land["label"] = "";
             curr_land["points"] = []
+            curr_land["id"] = current_landmarks[i].id;
             for (let j=0; j<current_landmarks[i].length; j++) {
                 var pt = {}
                 pt["x"] = current_landmarks[i][j].x;
@@ -523,11 +525,32 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             data.boxes.push(box);
         }
 
+
+        for (let i=0; i<current_ocrs; i++) {
+            var ocr = {};
+            ocr.field = current_ocrs[i].field;
+            ocr.label = current_ocrs[i].label;
+            var land_idx = -1;
+            for (let j=0; j<data.landmarks.length; j++) {
+                if (data.landmarks[j].id == current_ocrs[i].landmark_id) {
+                    land_idx = j;
+                    break;
+                }
+            }            
+            ocr.landmark_idx = land_idx;
+
+            if (land_idx >= 0) {
+                data.ocrs.push(ocr);
+            } else {
+                console.log("Problem finding landmark associated with this OCR");
+            }
+        }
+
         var json = JSON.stringify(data);
         Http.setRequestHeader("Content-Type", "application/json; charset=utf-8");
         Http.send(json);
         Http.onload=(e)=>{
-            console.log("UploadAnnotations done!");
+            console.log("UploadAnnotations done!", json);
         }
 
     }
@@ -828,6 +851,8 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 if (ImGui.Button("Delete Landmarks")) {
                     current_landmarks = []
                     current_landmark_idx = 0;
+                    current_ocrs = [];
+                    current_ocr_idx = 0;
                     frame_updated = true;
                 }
             }
@@ -908,7 +933,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                                         {
                                             current_landmarks[current_landmark_idx].push(new Landmark(
                                                     (io.MousePos.x-screen_pos.x)/scale,
-                                                    (io.MousePos.y-screen_pos.y)/scale));
+                                                    (io.MousePos.y-screen_pos.y)/scale, "", -1));
                                             frame_updated = true;
                                             if (current_landmarks[current_landmark_idx].length == num_landmarks) {
                                                 current_landmark_idx += 1;
