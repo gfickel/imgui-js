@@ -833,6 +833,17 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             }
             
             ImGui.Text("Current Image: "+current_image.toString()+"/"+num_images.toString()+" - ID "+image_id);
+            ImGui.SameLine();
+
+            const input_image = STATIC("input_image", "0");
+            if (ImGui.InputText("##input_dataset", (value = input_image.value) => input_image.value = value)) {
+                current_image = parseInt(input_image.value);
+                if (current_image == current_image) {
+                    LoadCurrentImage();
+                }
+                frame_updated = true;
+            }
+
             
             const annotation_mode = STATIC("annotation_mode", 1);
 
