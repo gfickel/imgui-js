@@ -241,10 +241,11 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         this.label = label;
     }
 
-    function Landmark(x, y, label) {
+    function Landmark(x, y, label, id) {
         this.x = x;
         this.y = y;
         this.label = label;
+        this.id = id;
     }
 
     function OCR(label, field, landmark_id, landmark_idx, image_url, left, ttop) {
@@ -423,9 +424,16 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             }
         }
     }
-
-    function GetOCRImages() {
-        return [];
+    
+    function TransformLandmarksInOCR(datasetId) {
+        const Http = new XMLHttpRequest();
+        const url='http://192.168.1.42:8094/annotator_supreme/annotation/ocr/transform/'+datasetId;
+        Http.open("POST", url, true);
+        
+        Http.send();
+        Http.onload=(e)=>{
+            LoadImages();
+        }
     }
 
     function LoadCurrentImage() {
@@ -969,6 +977,11 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
                     console.log("Code to anno bounding box");
                 } else if(ocrs_active) { 
+                    if (ImGui.Button("Transorm Landmarks in OCRs")) {
+                        var id = all_datasets[current_dataset]["id"].toString();
+                        TransformLandmarksInOCR(id);
+                    }
+
                     const ocr_height = STATIC("ocr_height", 200);
                     var window_width = ImGui.GetContentRegionAvailWidth();
                     ImGui.PushItemWidth(200);
