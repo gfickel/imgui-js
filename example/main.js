@@ -252,12 +252,12 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         var url = "http://192.168.1.42:8094/annotator_supreme/";
         const gl = ImGui_Impl.gl;
         this.label = label;
+        this.field = field;
         this.landmark_id = landmark_id;
         this.landmark_idx = landmark_idx;
         this.image = new TextureImage(url+image_url, gl);
         this.left = left;
         this.top = ttop;
-        console.log(url+image_url);
     }
 
     function DraggingStatus() {
@@ -307,7 +307,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             var left = all_images[current_image]['ocrs'][i]['ocr_image_left'];
             var ttop = all_images[current_image]['ocrs'][i]['ocr_image_top'];
             
-            anno.push(new OCR(label, field, landmark_id, landmark_idx, image_url, left, ttop));
+            anno.push(new OCR(label, field, parseInt(landmark_id), landmark_idx, image_url, left, ttop));
         }
 
         return anno;
@@ -349,15 +349,20 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         all_images[current_image]["landmarks"] = []
         for (let i=0; i<landmarks.length; i++) {
             var land = [];
+            var label = "";
+            var id = -1;
             for (let j=0; j<landmarks[i].length; j++) {
                 var pt = {};
                 pt["x"] = landmarks[i][j].x;
                 pt["y"] = landmarks[i][j].y;
+                label = landmarks[i][j]["label"];
+                id = landmarks[i][j]["id"];
                 land.push(pt);
             }
             var land_anno = {};
-            land_anno["label"] = landmarks[i].label;
+            land_anno["label"] = label;
             land_anno["points"] = land;
+            land_anno["id"] = id;
             if (land.length > 0) {
                 all_images[current_image]["landmarks"].push(land_anno);
             }
@@ -404,7 +409,6 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         Http.send();
         Http.onload=(e)=>{
             all_datasets = Http.response['datasets'];
-            console.log(all_datasets);
         }
     }
 
@@ -450,6 +454,9 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
         const gl = ImGui_Impl.gl;
         var url = "http://192.168.1.42:8094/annotator_supreme/";
+        if (current_texture_image && current_texture_image.width > 10) {
+            gl.deleteTexture(current_texture_image.gl_texture);
+        }
         current_texture_image = new TextureImage(url+all_images[current_image]['image_url'], gl);
 
         current_boxes = BoxesFromAnnotation();
@@ -457,7 +464,6 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         current_ocrs = OCRsFromAnnotation(current_landmarks);
         current_landmark_idx = current_landmarks.length;
         current_landmarks.push([]);
-        console.log("ocrs", current_ocrs);
         frame_updated = true;
     }
 
@@ -473,6 +479,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         Http.send();
         Http.onload=(e)=>{
             all_images = Http.response['annotations'];
+            console.log("All images anno", all_images);
             current_image = 0;
             LoadCurrentImage();
         }
@@ -484,7 +491,8 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
         var id_dataset = all_datasets[current_dataset]["id"].toString();
         var id = all_images[current_image]["id"].toString();
-        UpdateAnnotation(current_boxes, current_landmarks);
+        var previous_image = current_image;
+        UpdateAnnotation(current_boxes, current_landmarks, current_ocrs);
         const Http = new XMLHttpRequest();
         const url='http://192.168.1.42:8094/annotator_supreme/annotation/'+id_dataset+'/'+id;
         Http.open("PATCH", url, true);
@@ -501,7 +509,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
             curr_land["label"] = "";
             curr_land["points"] = []
-            curr_land["id"] = current_landmarks[i].id;
+            curr_land["id"] = current_landmarks[i][0].id;
             for (let j=0; j<current_landmarks[i].length; j++) {
                 var pt = {}
                 pt["x"] = current_landmarks[i][j].x;
@@ -526,7 +534,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         }
 
 
-        for (let i=0; i<current_ocrs; i++) {
+        for (let i=0; i<current_ocrs.length; i++) {
             var ocr = {};
             ocr.field = current_ocrs[i].field;
             ocr.label = current_ocrs[i].label;
@@ -541,18 +549,18 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
             if (land_idx >= 0) {
                 data.ocrs.push(ocr);
-            } else {
-                console.log("Problem finding landmark associated with this OCR");
             }
         }
 
         var json = JSON.stringify(data);
+        Http.responseType = 'json';
         Http.setRequestHeader("Content-Type", "application/json; charset=utf-8");
         Http.send(json);
         Http.onload=(e)=>{
-            console.log("UploadAnnotations done!", json);
+            var curr_anno = Http.response['annotations'];
+            all_images[previous_image]["landmarks"] = curr_anno["landmarks"];
+            all_images[previous_image]["ocrs"] = curr_anno["ocrs"];
         }
-
     }
         
     function main() {
@@ -647,6 +655,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
         // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
         // Start the Dear ImGui frame
+
         ImGui_Impl.NewFrame(time);
         ImGui.NewFrame();
 
