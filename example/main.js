@@ -330,7 +330,124 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         return anno;
     }
 
-    function UpdateAnnotation(boxes, landmarks) {
+    function UpdateAnnotation(boxes, landmarks, ocrs) {
+        var anno_changed = false;
+
+        // First check if there was a delete/add of annotations
+        // There is a -1 on the current landmarks because it always
+        // has an empty landmark vector waiting for the user to click
+        // and start adding landmarks.
+        if (boxes.length != all_images[current_image]["boxes"].length || 
+            (landmarks.length-1) != all_images[current_image]["landmarks"].length || 
+            ocrs.length != all_images[current_image]["ocrs"].length)
+        {
+            anno_changed = true;
+        }
+
+        console.log(boxes.length, all_images[current_image]["boxes"].length, landmarks.length-1, all_images[current_image]["landmarks"].length, ocrs.length, all_images[current_image]["ocrs"].length)
+
+        // If the number didn't changed, check if they are indeed identical
+        if (anno_changed == false) {
+            for (let i=0; i<boxes.length; i++) {
+                var found_box = false;
+                for (let j=0; j<all_images[current_image]["boxes"].length; j++) {
+                    if (boxes[i].x1 == all_images[current_image]["boxes"][j]["x1"] || 
+                        boxes[i].y1 == all_images[current_image]["boxes"][j]["y1"] || 
+                        boxes[i].x2 == all_images[current_image]["boxes"][j]["x2"] || 
+                        boxes[i].y2 == all_images[current_image]["boxes"][j]["y2"] || 
+                        boxes[i].x3 == all_images[current_image]["boxes"][j]["x3"] || 
+                        boxes[i].y3 == all_images[current_image]["boxes"][j]["y3"] || 
+                        boxes[i].x4 == all_images[current_image]["boxes"][j]["x4"] || 
+                        boxes[i].y4 == all_images[current_image]["boxes"][j]["y4"]) 
+                    {
+                        found_box = true;
+                        break;
+                    }
+                }
+                if (found_box == false) {
+                    anno_changed = true;
+                    break;
+                }
+            }
+            
+            for (let i=0; i<landmarks.length; i++) {
+                if (landmarks[i].length == 0) {
+                    continue;
+                }
+                var found_land = false;
+                for (let j=0; j<all_images[current_image]["landmarks"].length; j++) {
+                    if (landmarks[i].length != all_images[current_image]["landmarks"][j]["points"].length) {
+                        console.log(all_images[current_image]["landmarks"]);
+                        continue;
+                    }
+                    var good_points = true;
+                    for (let k=0; k<landmarks[i].length; k++) {
+                        if (landmarks[i][k].x != all_images[current_image]["landmarks"][j]["points"][k]["x"] ||
+                            landmarks[i][k].y != all_images[current_image]["landmarks"][j]["points"][k]["y"])
+                        {
+                            good_points = false;
+                            break;
+                        }
+                    }
+                    if (good_points) {
+                        found_land = true;
+                    }
+                }
+                if (found_land == false) {
+                    anno_changed = true;
+                    break;
+                }
+            }
+
+            for (let i=0; i<landmarks.length; i++) {
+                if (landmarks[i].length == 0) {
+                    continue;
+                }
+                var found_land = false;
+                for (let j=0; j<all_images[current_image]["landmarks"].length; j++) {
+                    if (landmarks[i].length != all_images[current_image]["landmarks"][j]["points"].length) {
+                        console.log(all_images[current_image]["landmarks"]);
+                        continue;
+                    }
+                    var good_points = true;
+                    for (let k=0; k<landmarks[i].length; k++) {
+                        if (landmarks[i][k].x != all_images[current_image]["landmarks"][j]["points"][k]["x"] ||
+                            landmarks[i][k].y != all_images[current_image]["landmarks"][j]["points"][k]["y"])
+                        {
+                            good_points = false;
+                            break;
+                        }
+                    }
+                    if (good_points) {
+                        found_land = true;
+                    }
+                }
+                if (found_land == false) {
+                    anno_changed = true;
+                    break;
+                }
+            }
+
+            for (let i=0; i<ocrs.length; i++) {
+                var found_ocr = false;
+                for (let j=0; j<all_images[current_image]["ocrs"].length; j++) {
+                    if (ocrs[i].label == all_images[current_image]["ocrs"][j]["label"] && 
+                        ocrs[i].field == all_images[current_image]["ocrs"][j]["field"] &&
+                        ocrs[i].landmark_id == all_images[current_image]["ocrs"][j]["landmark_id"])
+                    {
+                        found_ocr = true;
+                        break;
+                    }
+                }
+                if (found_ocr == false) {
+                    anno_changed = true;
+                    break;
+                }
+            }
+        }
+        
+        console.log("Annotation changed?", anno_changed);
+
         all_images[current_image]["boxes"] = []
         for (let i=0; i<boxes.length; i++) {
             var box = {};
@@ -492,7 +609,9 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         var id_dataset = all_datasets[current_dataset]["id"].toString();
         var id = all_images[current_image]["id"].toString();
         var previous_image = current_image;
-        UpdateAnnotation(current_boxes, current_landmarks, current_ocrs);
+        if (UpdateAnnotation(current_boxes, current_landmarks, current_ocrs) == false) {
+            return;
+        }
         const Http = new XMLHttpRequest();
         const url='http://192.168.1.42:8094/annotator_supreme/annotation/'+id_dataset+'/'+id;
         Http.open("PATCH", url, true);
