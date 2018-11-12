@@ -484,6 +484,8 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 all_images[current_image]["landmarks"].push(land_anno);
             }
         }
+
+        return anno_changed;
     }
 
 
