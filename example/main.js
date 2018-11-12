@@ -578,11 +578,33 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         }
         current_texture_image = new TextureImage(url+all_images[current_image]['image_url'], gl);
 
-        current_boxes = BoxesFromAnnotation();
-        current_landmarks = LandmarksFromAnnotation();
-        current_ocrs = OCRsFromAnnotation(current_landmarks);
-        current_landmark_idx = current_landmarks.length;
-        current_landmarks.push([]);
+        
+        var id = all_datasets[current_dataset]["id"].toString();
+        var this_current_image = current_image;
+        const Http = new XMLHttpRequest();
+        url='http://192.168.1.42:8094/annotator_supreme/annotation/'+id+'/'+all_images[current_image]['id'];
+        Http.responseType = 'json';
+        Http.open("GET", url, true);
+        Http.send();
+        current_boxes = [];
+        current_landmarks = [];
+        current_ocrs = [];
+        current_landmark_idx = 0;
+        current_ocr_idx = 0;
+
+        Http.onload=(e)=>{
+            var curr_anno = Http.response;
+            all_images[this_current_image]["landmarks"] = curr_anno["landmarks"];
+            all_images[this_current_image]["ocrs"] = curr_anno["ocrs"];
+            all_images[this_current_image]["boxes"] = curr_anno["boxes"];
+            current_boxes = BoxesFromAnnotation();
+            current_landmarks = LandmarksFromAnnotation();
+            current_ocrs = OCRsFromAnnotation(current_landmarks);
+            current_landmark_idx = current_landmarks.length;
+            current_landmarks.push([]);
+            frame_updated = true;
+        }
+
         frame_updated = true;
     }
 
@@ -1033,6 +1055,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     ImGui.Image(current_texture_image.gl_texture, new imgui_js_1.ImVec2(plot_width, plot_height));
                 }
 
+
                 const io = ImGui.GetIO();
                 if (landmarks_active) {
                     if (ImGui.IsMouseDragging()) {
@@ -1171,7 +1194,6 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                         var height = current_ocrs[i].image.height;
                         ocr_scale = (ocr_height.value-25)/height;
                         current_width += Math.round(width*ocr_scale);
-
 
                         // Draw the current image
                         ImGui.Image(current_ocrs[i].image.gl_texture, new imgui_js_1.ImVec2(Math.round(width*ocr_scale), Math.round(height*ocr_scale)));
