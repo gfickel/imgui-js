@@ -8,7 +8,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             step((generator = generator.apply(thisArg, _arguments || [])).next());
         });
     };
-    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, annotating_active, num_landmarks, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset, hal_image, current_texture_image, current_ocrs, current_ocr_idx, current_landmarks, current_landmark_idx, current_boxes, drag_status, frame_updated, image_scale, scale_image_to_window, _static, Static;
+    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, annotating_active, num_landmarks, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset, hal_image, current_texture_image, current_ocrs, current_ocr_idx, current_landmarks, current_landmark_idx, current_boxes, drag_status, frame_updated, translate_updated, image_scale, scale_image_to_window, image_translation, _static, Static;
     var __moduleName = context_1 && context_1.id;
     function LoadArrayBuffer(url) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -72,6 +72,31 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
     // This is slow! Call only once before all the texture updates
     function GetOriginalPixels(textureImage) {
         return textureImage.pixels.slice();
+    }
+
+    function TranslatePixels(textureImage) {
+        var width = textureImage.width;
+        var height = textureImage.height;
+
+        var new_pixels = textureImage.pixels.slice();
+        var right = width-Math.abs(image_translation);
+
+        for (var i=0; i<height; i++) {
+            for (var j=0; j<right; j++) {
+                var idx = i*width*4+j*4;
+                var old_idx = i*width*4+(j+(-image_translation))*4;
+                
+                new_pixels[idx+0] = new_pixels[old_idx+0];
+                new_pixels[idx+1] = new_pixels[old_idx+1];
+                new_pixels[idx+2] = new_pixels[old_idx+2];
+            }
+            for (var j=right; j<width; j++) {
+                var idx = i*width*4+j*4;
+                new_pixels[idx+3] = 0;
+            }        
+        }
+
+        return new_pixels;
     }
 
     function DrawPoint(textureImage, pixels, x, y, canvasWidth, canvasHeight, ptSize, scalePointPosition) {
@@ -565,6 +590,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         // if (current_texture_image) {
         //     DeleteTextureImage(current_texture_image);
         // }
+        image_translation = 0;
         if (current_image >= all_images.length) {
             current_texture_image = null;
             console.log("Invalid image to load", current_image);
@@ -914,18 +940,28 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 }
 
             for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++) {
-                if (ImGui.IsKeyPressed(i) && i==37) {
+                if (ImGui.IsKeyPressed(i) && i==37) { // left
                     UploadAnnotations();
                     current_image -= 1;
                     if (current_image < 0) 
                         current_image = 0;
                     LoadCurrentImage();
-                } else if (ImGui.IsKeyPressed(i) && i==39) {
+                } else if (ImGui.IsKeyPressed(i) && i==39) { // right
                     UploadAnnotations();
                     current_image += 1;
                     if (current_image >= all_images.length)
                         current_image = all_images.length-1;
                     LoadCurrentImage();
+                } else if (ImGui.IsKeyPressed(i) && i==17) { // ctrl
+                    if (io.MouseWheel > 0) {
+                        if (image_translation < 0) {
+                            image_translation += 90; 
+                            translate_updated = true;
+                        }
+                    } else if (io.MouseWheel < 0) {
+                        image_translation -= 90;
+                        translate_updated = true;
+                    }
                 }
             }
 
@@ -965,7 +1001,8 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             ImGui.End();
         }
         if (annotating_active) {
-            ImGui.Begin("Annotate Image"); 
+            let show = true;
+            ImGui.Begin("Annotate Image", (_ = show) => show = _, ImGui.WindowFlags_HorizontalScrollbar); 
             var num_images = 0;
             var image_id = " ";
             if (all_images) {
@@ -977,6 +1014,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             
             ImGui.Text("Current Image: "+current_image.toString()+"/"+num_images.toString()+" - ID "+image_id);
             ImGui.SameLine();
+
 
             const input_image = STATIC("input_image", "0");
             if (ImGui.InputText("##input_dataset", (value = input_image.value) => input_image.value = value)) {
@@ -1024,6 +1062,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             if (ImGui.Checkbox("Scale Image to Window", (value = scale_image_to_window) => scale_image_to_window = value)) {
                 frame_updated = true;
             }
+
             const image_scale = STATIC("image_scale", 0.75);
             ImGui.PushItemWidth(200);
             if (ImGui.SliderFloat("##Image Scale", (value = image_scale.value) => image_scale.value = value, 0.1, 4.0, "Image Scale = %.3f")) {
@@ -1064,14 +1103,14 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                             drag_status.dx = drag_status.dy = 0;
                                 
                             var closest_landmark =  GetClosestLandmark(
-                                            (io.MousePos.x-screen_pos.x)/scale, 
+                                            (io.MousePos.x-screen_pos.x)/scale-image_translation, 
                                             (io.MousePos.y-screen_pos.y)/scale, 30/scale);
                             
                             drag_status.landmark_idx = closest_landmark[0];
                             drag_status.landmark_pt_idx = closest_landmark[1];
                         }
                         
-                        var x = (io.MousePos.x-screen_pos.x)/scale;
+                        var x = (io.MousePos.x-screen_pos.x)/scale-image_translation;
                         var y = (io.MousePos.y-screen_pos.y)/scale;
                         if( UpdateDraggingAnno(drag_status, x, y) )
                             frame_updated = true;
@@ -1079,6 +1118,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     else { 
                         if (drag_status.dragging) { // I'm stoping the dragging
                             frame_updated = true;
+                            translate_updated = true;
                             drag_status.landmark_idx = -1;
                             drag_status.landmark_pt_idx = -1;
                             drag_status.dragging = false;
@@ -1092,13 +1132,14 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                                     if (ImGui.IsMouseReleased(i)) {
                                         if ( (io.MousePos.x-screen_pos.x) >= 0 &&
                                              (io.MousePos.y-screen_pos.y) >= 0 && 
-                                             (io.MousePos.x-screen_pos.x)/scale <= im_cols &&
+                                             (io.MousePos.x-screen_pos.x)/scale-image_translation <= im_cols &&
                                              (io.MousePos.y-screen_pos.y)/scale <= im_rows) 
                                         {
                                             current_landmarks[current_landmark_idx].push(new Landmark(
-                                                    (io.MousePos.x-screen_pos.x)/scale,
+                                                    (io.MousePos.x-screen_pos.x)/scale-image_translation,
                                                     (io.MousePos.y-screen_pos.y)/scale, "", -1));
                                             frame_updated = true;
+                                            translate_updated = true;
                                             if (current_landmarks[current_landmark_idx].length == num_landmarks) {
                                                 current_landmark_idx += 1;
                                                 current_landmarks.push([]);
@@ -1229,33 +1270,40 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     }
                 }
 
-                if (screen_pos == screen_pos && frame_updated) {
+                if (screen_pos == screen_pos && (frame_updated || translate_updated)) {
                     const gl = ImGui_Impl.gl;
+                    var pixels;
+                    if (translate_updated) {
+                        pixels = TranslatePixels(current_texture_image);
+                    } else {
+                        pixels = GetOriginalPixels(current_texture_image);
+                    }
 
-                    var pixels = GetOriginalPixels(current_texture_image);
                     for (let i=0; i<current_landmarks.length; i++) {
                         for (let j=0; j<current_landmarks[i].length; j++) {
-                            DrawPoint(current_texture_image, pixels, current_landmarks[i][j].x, current_landmarks[i][j].y, plot_width, plot_height, 4, false);
+                            DrawPoint(current_texture_image, pixels, current_landmarks[i][j].x+image_translation, current_landmarks[i][j].y, plot_width, plot_height, 4, false);
                             var j2 = j+1;                            
                             if (j2 >= num_landmarks) 
                                 j2 = 0;
                             if (j2 >= current_landmarks[i].length)
                                 continue;
                             
-                            DrawLine (current_landmarks[i][j].x, current_landmarks[i][j].y, 
-                                    current_landmarks[i][j2].x, current_landmarks[i][j2].y,
+                            DrawLine (current_landmarks[i][j].x+image_translation, current_landmarks[i][j].y, 
+                                    current_landmarks[i][j2].x+image_translation, current_landmarks[i][j2].y,
                                     pixels, current_texture_image, 
                                     plot_width, plot_height, 4, colors[i]);
                         }
                         for (let j=0; j<current_landmarks[i].length; j++) {
-                            DrawPoint(current_texture_image, pixels, current_landmarks[i][j].x, current_landmarks[i][j].y, plot_width, plot_height, 4, false);
+                            DrawPoint(current_texture_image, pixels, current_landmarks[i][j].x+image_translation, current_landmarks[i][j].y, plot_width, plot_height, 4, false);
                         }
                     }
 
                     UpdateTexture(current_texture_image, pixels, gl);
                     // Did I updated the correct frame or the image is not loaded yet?
-                    if (current_texture_image.width > 10)
+                    if (current_texture_image.width > 10) {
                         frame_updated = false;
+                        translate_updated = false;
+                    }
                 }
 
             }
@@ -1526,8 +1574,10 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             dataset_name = '';
             deleting_dataset = false;
             frame_updated = true;
+            translate_updated = true;
             drag_status = new DraggingStatus();
             image_scale = 0.75;
+            image_translation = 0;
             scale_image_to_window = true;
             /* static */ f = 0.0;
             /* static */ counter = 0;
