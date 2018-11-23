@@ -1273,7 +1273,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 if (screen_pos == screen_pos && (frame_updated || translate_updated)) {
                     const gl = ImGui_Impl.gl;
                     var pixels;
-                    if (translate_updated) {
+                    if (translate_updated || frame_updated) {
                         pixels = TranslatePixels(current_texture_image);
                     } else {
                         pixels = GetOriginalPixels(current_texture_image);
