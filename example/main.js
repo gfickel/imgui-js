@@ -1291,7 +1291,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                             DrawLine (current_landmarks[i][j].x+image_translation, current_landmarks[i][j].y, 
                                     current_landmarks[i][j2].x+image_translation, current_landmarks[i][j2].y,
                                     pixels, current_texture_image, 
-                                    plot_width, plot_height, 4, colors[i]);
+                                    plot_width, plot_height, 4, colors[i%colors.length]);
                         }
                         for (let j=0; j<current_landmarks[i].length; j++) {
                             DrawPoint(current_texture_image, pixels, current_landmarks[i][j].x+image_translation, current_landmarks[i][j].y, plot_width, plot_height, 4, false);
