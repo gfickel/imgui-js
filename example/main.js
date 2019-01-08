@@ -8,7 +8,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             step((generator = generator.apply(thisArg, _arguments || [])).next());
         });
     };
-    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, annotating_active, num_landmarks, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset, hal_image, current_texture_image, current_ocrs, current_ocr_idx, current_landmarks, current_landmark_idx, current_boxes, drag_status, frame_updated, translate_updated, image_scale, scale_image_to_window, image_translation, loading, _static, Static;
+    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, annotating_active, num_landmarks, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset, hal_image, current_texture_image, current_ocrs, current_ocr_idx, current_landmarks, current_landmark_idx, current_boxes, drag_status, frame_updated, translate_updated, image_scale, scale_image_to_window, image_translation, show_stats, loading, _static, Static;
     var __moduleName = context_1 && context_1.id;
     function LoadArrayBuffer(url) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -573,6 +573,28 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             }
         }
     }
+
+    function RotateCurrentImage(angle) {
+        if (current_image >= all_images.length) {
+            console.log("Invalid image to rotate");
+            return;
+        }
+        loading = true;
+        var this_current_image = current_image;
+        const Http = new XMLHttpRequest();
+        var url='http://localhost:8094/annotator_supreme/image/'+all_images[current_image]['id']+'/rotate';
+                    
+        Http.open("POST", url, true);
+        var data = {}
+        data.angle = angle;
+        var json = JSON.stringify(data);
+        Http.setRequestHeader("Content-Type", "application/json; charset=utf-8");
+        Http.send(json);
+        Http.onload=(e)=>{
+            LoadCurrentImage();
+            loading = false;
+        }
+    }
     
     function TransformLandmarksInOCR(datasetId) {
         const Http = new XMLHttpRequest();
@@ -585,7 +607,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         }
     }
 
-    function LoadCurrentImage() {
+    function LoadCurrentImage(eraseCache=false) {
         // TODO: Am I leaking gl textures? And if so, is it thaaaat bad?
         // if (current_texture_image) {
         //     DeleteTextureImage(current_texture_image);
@@ -597,12 +619,17 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             return;
         }
 
+        loading = true;
         const gl = ImGui_Impl.gl;
         var url = "http://localhost:8094/annotator_supreme/";
         if (current_texture_image && current_texture_image.width > 10) {
             gl.deleteTexture(current_texture_image.gl_texture);
         }
-        current_texture_image = new TextureImage(url+all_images[current_image]['image_url'], gl);
+        if (eraseCache) {
+            current_texture_image = new TextureImage(url+all_images[current_image]['image_url'], gl);
+        } else {
+            current_texture_image = new TextureImage(url+all_images[current_image]['image_url']+'?bogus='+Math.random().toString(10), gl);
+        }
 
         
         var id = all_datasets[current_dataset]["id"].toString();
@@ -629,6 +656,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             current_landmark_idx = current_landmarks.length;
             current_landmarks.push([]);
             frame_updated = true;
+            loading = false;
         }
 
         frame_updated = true;
@@ -828,7 +856,8 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             ImGui.SetNextWindowPos(new imgui_js_1.ImVec2(0,0));
             ImGui.SetNextWindowSize(new imgui_js_1.ImVec2(gl.canvas.width, gl.canvas.height));
             ImGui.Begin("Annotator Supreme", (_ = show) => show = _, ImGui.WindowFlags.MenuBar | ImGui.WindowFlags.NoResize | ImGui.WindowFlags.NoMove |  ImGui.WindowFlags.NoCollapse | ImGui.WindowFlags.NoBackground | ImGui.WindowFlags.NoCollapse)
-            ImGui.Text(`Application average ${(1000.0 / ImGui.GetIO().Framerate).toFixed(3)} ms/frame (${ImGui.GetIO().Framerate.toFixed(1)} FPS)`);
+            if (show_stats)
+                ImGui.Text(`Application average ${(1000.0 / ImGui.GetIO().Framerate).toFixed(3)} ms/frame (${ImGui.GetIO().Framerate.toFixed(1)} FPS)`);
 
 
             var datasets_menu = STATIC("datasets_menu", false);
@@ -864,6 +893,11 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     ImGui.EndMenu();
                     datasets_menu.value = false;
                     annotation_menu.value = true;
+                }
+                if (ImGui.BeginMenu("Configurations")) {
+                    if (ImGui.MenuItem("Show Stats"))
+                        show_stats = !show_stats;
+                    ImGui.EndMenu();
                 }
                 ImGui.EndMenuBar();
             }
@@ -1019,9 +1053,6 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     }
                 }
                 
-                ImGui.Text("Current Image: "+current_image.toString()+"/"+num_images.toString()+" - ID "+image_id);
-                ImGui.SameLine();
-                
                 // Read user input to change image
                 for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++) {
                     if (ImGui.IsKeyPressed(i) && i==37) { // left
@@ -1048,15 +1079,27 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                         }
                     }
                 }
-
+                
+                ImGui.Text("Current Image: "+current_image.toString()+"/"+num_images.toString());//+" - ID "+image_id);
+                ImGui.SameLine();
 
                 const input_image = STATIC("input_image", "0");
+                ImGui.PushItemWidth(80);
                 if (ImGui.InputText("##input_dataset", (value = input_image.value) => input_image.value = value)) {
                     current_image = parseInt(input_image.value);
                     if (current_image == current_image) {
                         LoadCurrentImage();
                     }
                     frame_updated = true;
+                }
+                ImGui.SameLine();
+
+                if (ImGui.Button("Rotate Clockwise")) {
+                    RotateCurrentImage(90);
+                }
+                ImGui.SameLine();
+                if (ImGui.Button("Rotate Counter Clockwise")) {
+                    RotateCurrentImage(-90);
                 }
 
                 
@@ -1601,6 +1644,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             scale_image_to_window = true;
             /* static */ f = 0.0;
             /* static */ counter = 0;
+            show_stats = false;
             loading = false;
             Static = class Static {
                 constructor(value) {
