@@ -8,7 +8,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             step((generator = generator.apply(thisArg, _arguments || [])).next());
         });
     };
-    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, annotating_active, num_landmarks, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset, hal_image, current_texture_image, current_ocrs, current_ocr_idx, current_landmarks, current_landmark_idx, current_boxes, drag_status, frame_updated, translate_updated, image_scale, scale_image_to_window, image_translation, _static, Static;
+    var ImGui, ImGui_Impl, imgui_js_1, imgui_js_2, imgui_demo_1, imgui_memory_editor_1, font, show_demo_window, show_another_window, clear_color, memory_editor, show_sandbox_window, show_gamepad_window, show_movie_window, f, counter, done, source, image_urls, image_url, image_element, image_gl_texture, video_urls, video_url, video_element, video_gl_texture, video_w, video_h, video_time_active, video_time, video_duration, annotating_active, num_landmarks, upload_images, all_datasets, current_dataset, all_images, current_image, dataset_name, deleting_dataset, hal_image, current_texture_image, current_ocrs, current_ocr_idx, current_landmarks, current_landmark_idx, current_boxes, drag_status, frame_updated, translate_updated, image_scale, scale_image_to_window, image_translation, loading, _static, Static;
     var __moduleName = context_1 && context_1.id;
     function LoadArrayBuffer(url) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -635,6 +635,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
     }
 
     function LoadImages() {
+        loading = true;
         all_images = null;
         var id = all_datasets[current_dataset]["id"].toString();
            
@@ -649,6 +650,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             console.log("All images anno", all_images);
             current_image = 0;
             LoadCurrentImage();
+            loading = false;
         }
     }
 
@@ -844,9 +846,12 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                             LoadImages();
                         }
                     }
+                    ImGui.Separator();
+                    if (ImGui.MenuItem("Dataset Options")) {
+                        datasets_menu.value = true;
+                        annotation_menu.value = false;
+                    }
                     ImGui.EndMenu();
-                    datasets_menu.value = true;
-                    annotation_menu.value = false;
                 }
                 if (ImGui.BeginMenu("Annotation")) {
                     if (ImGui.MenuItem("Bounding Box")) {
@@ -862,8 +867,19 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 }
                 ImGui.EndMenuBar();
             }
+            if (loading) {
+                ImGui.SetCursorPos(new imgui_js_1.ImVec2(gl.canvas.width/2,gl.canvas.height/2));
+                var option = Math.round(ImGui.GetTime()/0.1) % 3;
+                if (option == 0) {
+                    ImGui.Text("Loading /");
+                } else if (option == 1) {
+                    ImGui.Text("Loading -");
+                } else {
+                    ImGui.Text("Loading \\");
+                }
+            }
 
-            if (datasets_menu.value && all_datasets) {
+            if (datasets_menu.value && loading == false) {
 
                 if (ImGui.ImageButton(hal_image.gl_texture, new imgui_js_1.ImVec2(100, 100))) {
                     if (hal_image.image) {
@@ -992,7 +1008,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     ImGui.PopFont();
                 }
             }
-            if (annotation_menu.value) {
+            if (annotation_menu.value && loading == false) {
                 let show = true;
                 var num_images = 0;
                 var image_id = " ";
@@ -1585,6 +1601,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             scale_image_to_window = true;
             /* static */ f = 0.0;
             /* static */ counter = 0;
+            loading = false;
             Static = class Static {
                 constructor(value) {
                     this.value = value;
