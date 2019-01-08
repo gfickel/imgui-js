@@ -274,7 +274,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
     }
 
     function OCR(label, field, landmark_id, landmark_idx, image_url, left, ttop) {
-        var url = "http://192.168.1.42:8094/annotator_supreme/";
+        var url = "http://localhost:8094/annotator_supreme/";
         const gl = ImGui_Impl.gl;
         this.label = label;
         this.field = field;
@@ -547,7 +547,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
 
     function LoadDatasets() {
         const Http = new XMLHttpRequest();
-        const url='http://192.168.1.42:8094/annotator_supreme/dataset/all';
+        const url='http://localhost:8094/annotator_supreme/dataset/all';
         Http.responseType = 'json';
         Http.open("GET", url, true);
         Http.send();
@@ -561,7 +561,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         idx += 1;
 
         const Http = new XMLHttpRequest();
-        const url='http://192.168.1.42:8094/annotator_supreme/annotation/'+datasetId;
+        const url='http://localhost:8094/annotator_supreme/annotation/'+datasetId;
         Http.open("POST", url, true);
         
         var formData = new FormData();
@@ -576,7 +576,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
     
     function TransformLandmarksInOCR(datasetId) {
         const Http = new XMLHttpRequest();
-        const url='http://192.168.1.42:8094/annotator_supreme/annotation/ocr/transform/'+datasetId;
+        const url='http://localhost:8094/annotator_supreme/annotation/ocr/transform/'+datasetId;
         Http.open("POST", url, true);
         
         Http.send();
@@ -598,7 +598,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         }
 
         const gl = ImGui_Impl.gl;
-        var url = "http://192.168.1.42:8094/annotator_supreme/";
+        var url = "http://localhost:8094/annotator_supreme/";
         if (current_texture_image && current_texture_image.width > 10) {
             gl.deleteTexture(current_texture_image.gl_texture);
         }
@@ -608,7 +608,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         var id = all_datasets[current_dataset]["id"].toString();
         var this_current_image = current_image;
         const Http = new XMLHttpRequest();
-        url='http://192.168.1.42:8094/annotator_supreme/annotation/'+id+'/'+all_images[current_image]['id'];
+        url='http://localhost:8094/annotator_supreme/annotation/'+id+'/'+all_images[current_image]['id'];
         Http.responseType = 'json';
         Http.open("GET", url, true);
         Http.send();
@@ -640,7 +640,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
            
         current_image = -1;
         const Http = new XMLHttpRequest();
-        const url='http://192.168.1.42:8094/annotator_supreme/annotation/'+id+'/all';
+        const url='http://localhost:8094/annotator_supreme/annotation/'+id+'/all';
         Http.responseType = 'json';
         Http.open("GET", url, true);
         Http.send();
@@ -663,7 +663,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             return;
         }
         const Http = new XMLHttpRequest();
-        const url='http://192.168.1.42:8094/annotator_supreme/annotation/'+id_dataset+'/'+id;
+        const url='http://localhost:8094/annotator_supreme/annotation/'+id_dataset+'/'+id;
         Http.open("PATCH", url, true);
         
         var data = {}
@@ -770,21 +770,8 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
             // io.ConfigFlags |= ImGui.ConfigFlags.NavEnableKeyboard;  // Enable Keyboard Controls
             // Setup style
             ImGui.StyleColorsDark();
-            //ImGui.StyleColorsClassic();
-            // Load Fonts
-            // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
-            // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
-            // - If the file cannot be loaded, the function will return NULL. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
-            // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-            // - Read 'misc/fonts/README.txt' for more instructions and details.
-            // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
             io.Fonts.AddFontDefault();
             font = yield AddFontFromFileTTF("../imgui/misc/fonts/Roboto-Medium.ttf", 16.0);
-            // font = await AddFontFromFileTTF("../imgui/misc/fonts/Cousine-Regular.ttf", 15.0);
-            // font = await AddFontFromFileTTF("../imgui/misc/fonts/DroidSans.ttf", 16.0);
-            // font = await AddFontFromFileTTF("../imgui/misc/fonts/ProggyTiny.ttf", 10.0);
-            // font = await AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0, null, io.Fonts.GetGlyphRangesJapanese());
-            // font = await AddFontFromFileTTF("https://raw.githubusercontent.com/googlei18n/noto-cjk/master/NotoSansJP-Regular.otf", 18.0, null, io.Fonts.GetGlyphRangesJapanese());
             ImGui.IM_ASSERT(font !== null);
             if (typeof (window) !== "undefined") {
                 const output = document.getElementById("output") || document.body;
@@ -798,7 +785,8 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 canvas.style.bottom = "0px";
                 canvas.style.width = "100%";
                 canvas.style.height = "100%";
-                ImGui_Impl.Init(canvas);                
+                ImGui_Impl.Init(canvas);    
+                console.log(ImGui);
             }
             else {
                 ImGui_Impl.Init(null);
@@ -825,39 +813,71 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
         // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
         // Start the Dear ImGui frame
 
+        // ImGui.StyleVar.FrameBorderSize=1.0;
         ImGui_Impl.NewFrame(time);
         ImGui.NewFrame();
 
         var colors = [[230, 25, 75], [60, 180, 75], [255, 225, 25], [0, 130, 200], [245, 130, 48], [145, 30, 180], [70, 240, 240], [240, 50, 230], [210, 245, 60], [250, 190, 190], [0, 128, 128], [230, 190, 255], [170, 110, 40], [255, 250, 200], [128, 0, 0], [170, 255, 195], [128, 128, 0], [255, 215, 180], [0, 0, 128], [128, 128, 128], [255, 255, 255], [0, 0, 0]];
 
         {
-            ImGui.Begin("Annotator Supreme"); 
-            ImGui.Text("This is just a proof of concept... so it will be buggy");
+            var show=true;
+            const gl = ImGui_Impl.gl;
+            const io = ImGui.GetIO();
+            ImGui.SetNextWindowPos(new imgui_js_1.ImVec2(0,0));
+            ImGui.SetNextWindowSize(new imgui_js_1.ImVec2(gl.canvas.width, gl.canvas.height));
+            ImGui.Begin("Annotator Supreme", (_ = show) => show = _, ImGui.WindowFlags.MenuBar | ImGui.WindowFlags.NoResize | ImGui.WindowFlags.NoMove |  ImGui.WindowFlags.NoCollapse | ImGui.WindowFlags.NoBackground | ImGui.WindowFlags.NoCollapse)
             ImGui.Text(`Application average ${(1000.0 / ImGui.GetIO().Framerate).toFixed(3)} ms/frame (${ImGui.GetIO().Framerate.toFixed(1)} FPS)`);
 
-            if (ImGui.ImageButton(hal_image.gl_texture, new imgui_js_1.ImVec2(100, 100))) {
-                if (hal_image.image) {
-                    hal_image.image.src = 'https://static01.nyt.com/images/2018/05/15/arts/01hal-voice1/merlin_135847308_098289a6-90ee-461b-88e2-20920469f96a-articleLarge.jpg';
+
+            var datasets_menu = STATIC("datasets_menu", false);
+            var annotation_menu = STATIC("annotation_menu", false);
+            var annotation_mode = STATIC("annotation_mode", 1);
+            var bbox_active      = (annotation_mode.value==0);
+            var landmarks_active = (annotation_mode.value==1);
+            var ocrs_active      = (annotation_mode.value==2);
+
+            if (ImGui.BeginMenuBar()) {
+                if (ImGui.BeginMenu("Datasets")) {
+                    for (var i=0; i<all_datasets.length; i++) {
+                        if (ImGui.MenuItem(all_datasets[i]['name']+"##"+i.toString())) {
+                            current_dataset = i;
+                            LoadImages();
+                        }
+                    }
+                    ImGui.EndMenu();
+                    datasets_menu.value = true;
+                    annotation_menu.value = false;
                 }
+                if (ImGui.BeginMenu("Annotation")) {
+                    if (ImGui.MenuItem("Bounding Box")) {
+                        annotation_mode.value = 0;
+                    } else if(ImGui.MenuItem("Landmarks")) {
+                        annotation_mode.value = 1;
+                    } else if(ImGui.MenuItem("OCR")) {
+                        annotation_mode.value = 2;
+                    }
+                    ImGui.EndMenu();
+                    datasets_menu.value = false;
+                    annotation_menu.value = true;
+                }
+                ImGui.EndMenuBar();
             }
 
-            if (ImGui.IsItemHovered()) {
-                ImGui.BeginTooltip();
-                ImGui.Text(image_url);
-                ImGui.EndTooltip();
-            }
+            if (datasets_menu.value && all_datasets) {
 
-            ImGui.Checkbox("Annotation Window", (value = annotating_active) => annotating_active = value); // Edit bools storing our windows open/close state
-
-            if(ImGui.CollapsingHeader("Datasets")) {
-                for (var i=0; i<all_datasets.length; i++) {
-                    if (ImGui.Selectable(all_datasets[i]['name']+"##"+i.toString(), current_dataset == i)) {
-                        current_dataset = i;
-                        LoadImages();
+                if (ImGui.ImageButton(hal_image.gl_texture, new imgui_js_1.ImVec2(100, 100))) {
+                    if (hal_image.image) {
+                        hal_image.image.src = 'https://static01.nyt.com/images/2018/05/15/arts/01hal-voice1/merlin_135847308_098289a6-90ee-461b-88e2-20920469f96a-articleLarge.jpg';
                     }
                 }
 
-                if (all_datasets.length > 0) {
+                if (ImGui.IsItemHovered()) {
+                    ImGui.BeginTooltip();
+                    ImGui.Text(image_url);
+                    ImGui.EndTooltip();
+                }
+
+                if (all_datasets && all_datasets.length > 0) {
                     if (ImGui.Button("Delete")) {
                         deleting_dataset = true;
                     }
@@ -867,7 +887,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     if (ImGui.Button("Yes##delete")) {
                         const Http = new XMLHttpRequest();
                         var id = all_datasets[current_dataset]["id"].toString();
-                        const url = 'http://192.168.1.42:8094/annotator_supreme/dataset/'+id;
+                        const url = 'http://localhost:8094/annotator_supreme/dataset/'+id;
                         Http.open("DELETE", url, true);
                         Http.send();
                         Http.onload=(e)=>{
@@ -885,7 +905,7 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                 ImGui.SameLine();
                 if (ImGui.Button("Add Dataset") && dataset_name) {
                     const Http = new XMLHttpRequest();
-                    const url='http://192.168.1.42:8094/annotator_supreme/dataset';
+                    const url='http://localhost:8094/annotator_supreme/dataset';
                     Http.open("POST", url, true);
                     
                     var data = {}
@@ -898,251 +918,235 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                     }
                     dataset_name = '';
                 }
-            }
             
-            const io = ImGui.GetIO();
-            ImGui.Text("Mouse clicked:");
-            for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++)
-                if (ImGui.IsMouseClicked(i)) {
-                    ImGui.SameLine();
-                    ImGui.Text(`b${i}`);
-                }
-            ImGui.Text("Mouse dbl-clicked:");
-            for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++)
-                if (ImGui.IsMouseDoubleClicked(i)) {
-                    ImGui.SameLine();
-                    ImGui.Text(`b${i}`);
-                }
-            ImGui.Text("Mouse released:");
-            for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++)
-                if (ImGui.IsMouseReleased(i)) {
-                    ImGui.SameLine();
-                    ImGui.Text(`b${i}`);
-                }
+                ImGui.Text("Mouse clicked:");
+                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++)
+                    if (ImGui.IsMouseClicked(i)) {
+                        ImGui.SameLine();
+                        ImGui.Text(`b${i}`);
+                    }
+                ImGui.Text("Mouse dbl-clicked:");
+                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++)
+                    if (ImGui.IsMouseDoubleClicked(i)) {
+                        ImGui.SameLine();
+                        ImGui.Text(`b${i}`);
+                    }
+                ImGui.Text("Mouse released:");
+                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++)
+                    if (ImGui.IsMouseReleased(i)) {
+                        ImGui.SameLine();
+                        ImGui.Text(`b${i}`);
+                    }
 
-            ImGui.Text("Keys down:");
-            for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++)
-                if (io.KeysDownDuration[i] >= 0.0) {
-                    ImGui.SameLine();
-                    ImGui.Text(`${i} (${io.KeysDownDuration[i].toFixed(2)} secs)`);
-                }
-            ImGui.Text("Keys pressed:");
-            for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++)
-                if (ImGui.IsKeyPressed(i)) {
-                    ImGui.SameLine();
-                    ImGui.Text(i.toString());
-                }
-            ImGui.Text("Keys release:");
-            for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++)
-                if (ImGui.IsKeyReleased(i)) {
-                    ImGui.SameLine();
-                    ImGui.Text(i.toString());
-                }
+                ImGui.Text("Keys down:");
+                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++)
+                    if (io.KeysDownDuration[i] >= 0.0) {
+                        ImGui.SameLine();
+                        ImGui.Text(`${i} (${io.KeysDownDuration[i].toFixed(2)} secs)`);
+                    }
+                ImGui.Text("Keys pressed:");
+                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++)
+                    if (ImGui.IsKeyPressed(i)) {
+                        ImGui.SameLine();
+                        ImGui.Text(i.toString());
+                    }
+                ImGui.Text("Keys release:");
+                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++)
+                    if (ImGui.IsKeyReleased(i)) {
+                        ImGui.SameLine();
+                        ImGui.Text(i.toString());
+                    }
 
-            for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++) {
-                if (ImGui.IsKeyPressed(i) && i==37) { // left
-                    UploadAnnotations();
-                    current_image -= 1;
-                    if (current_image < 0) 
-                        current_image = 0;
-                    LoadCurrentImage();
-                } else if (ImGui.IsKeyPressed(i) && i==39) { // right
-                    UploadAnnotations();
-                    current_image += 1;
-                    if (current_image >= all_images.length)
-                        current_image = all_images.length-1;
-                    LoadCurrentImage();
-                } else if (ImGui.IsKeyPressed(i) && i==17) { // ctrl
-                    if (io.MouseWheel > 0) {
-                        if (image_translation < 0) {
-                            image_translation += 90; 
-                            translate_updated = true;
+
+
+                
+                if (ImGui.Button("Upload Images")) {
+                    upload_images = !upload_images;
+                }
+                if (upload_images) {
+                    const gl = ImGui_Impl.gl;
+                    gl.canvas.style.left = "100px";
+                    document.getElementById('picField').onchange = function (evt) {
+                        var tgt = evt.target || window.event.srcElement,
+                            files = tgt.files;
+
+                        if (files && files.length) {
+                            var id = all_datasets[current_dataset]["id"].toString();
+                            UploadImages(id, files, 0);
                         }
-                    } else if (io.MouseWheel < 0) {
-                        image_translation -= 90;
-                        translate_updated = true;
+
+                        upload_images = false;
+                        gl.canvas.style.left = "0px";
                     }
-                }
-            }
-
-
-            
-            if (ImGui.Button("Upload Images")) {
-                upload_images = !upload_images;
-            }
-            if (upload_images) {
-                const gl = ImGui_Impl.gl;
-                gl.canvas.style.left = "100px";
-                document.getElementById('picField').onchange = function (evt) {
-                    var tgt = evt.target || window.event.srcElement,
-                        files = tgt.files;
-
-                    if (files && files.length) {
-                        var id = all_datasets[current_dataset]["id"].toString();
-                        UploadImages(id, files, 0);
-                    }
-
-                    upload_images = false;
+                } else {
+                    const gl = ImGui_Impl.gl;
                     gl.canvas.style.left = "0px";
                 }
-            } else {
-                const gl = ImGui_Impl.gl;
-                gl.canvas.style.left = "0px";
-            }
 
-            if (font) {
-                ImGui.PushFont(font);
-                ImGui.Text(`${font.GetDebugName()}`);
-                if (font.FindGlyphNoFallback(0x5929)) {
-                    ImGui.Text(`U+5929: \u5929`);
-                }
-                ImGui.PopFont();
-            }
-            ImGui.End();
-        }
-        if (annotating_active) {
-            let show = true;
-            ImGui.Begin("Annotate Image", (_ = show) => show = _, ImGui.WindowFlags_HorizontalScrollbar); 
-            var num_images = 0;
-            var image_id = " ";
-            if (all_images) {
-                num_images = all_images.length;
-                if (current_image < all_images.length) {
-                    image_id = all_images[current_image]["id"].toString();
+                if (font) {
+                    ImGui.PushFont(font);
+                    ImGui.Text(`${font.GetDebugName()}`);
+                    if (font.FindGlyphNoFallback(0x5929)) {
+                        ImGui.Text(`U+5929: \u5929`);
+                    }
+                    ImGui.PopFont();
                 }
             }
-            
-            ImGui.Text("Current Image: "+current_image.toString()+"/"+num_images.toString()+" - ID "+image_id);
-            ImGui.SameLine();
-
-
-            const input_image = STATIC("input_image", "0");
-            if (ImGui.InputText("##input_dataset", (value = input_image.value) => input_image.value = value)) {
-                current_image = parseInt(input_image.value);
-                if (current_image == current_image) {
-                    LoadCurrentImage();
+            if (annotation_menu.value) {
+                let show = true;
+                var num_images = 0;
+                var image_id = " ";
+                if (all_images) {
+                    num_images = all_images.length;
+                    if (current_image < all_images.length) {
+                        image_id = all_images[current_image]["id"].toString();
+                    }
                 }
-                frame_updated = true;
-            }
-
-            
-            const annotation_mode = STATIC("annotation_mode", 1);
-
-            var bbox_active      = (annotation_mode.value==0);
-            var landmarks_active = (annotation_mode.value==1);
-            var ocrs_active      = (annotation_mode.value==2);
-            if (ImGui.Checkbox("Bounding Box", (value = bbox_active) => bbox_active = value))
-                annotation_mode.value = 0;
-            ImGui.SameLine();
-            if (ImGui.Checkbox("Landmarks", (value = landmarks_active) => landmarks_active = value))
-                annotation_mode.value = 1;
-            ImGui.SameLine();
-            if (ImGui.Checkbox("OCRs", (value = ocrs_active) => ocrs_active = value))
-                annotation_mode.value = 2;
-
-            if (landmarks_active) {
-                var num_landmarks_str = num_landmarks.toString();
-                ImGui.PushItemWidth(30);
-                ImGui.InputText("##input_landmarks_num", (value = num_landmarks_str) => num_landmarks_str = value);
+                
+                ImGui.Text("Current Image: "+current_image.toString()+"/"+num_images.toString()+" - ID "+image_id);
                 ImGui.SameLine();
-                ImGui.Text("Landmarks Number");
-                num_landmarks = parseInt(num_landmarks_str);
+                
+                // Read user input to change image
+                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.KeysDown); i++) {
+                    if (ImGui.IsKeyPressed(i) && i==37) { // left
+                        UploadAnnotations();
+                        current_image -= 1;
+                        if (current_image < 0) 
+                            current_image = 0;
+                        LoadCurrentImage();
+                    } else if (ImGui.IsKeyPressed(i) && i==39) { // right
+                        UploadAnnotations();
+                        current_image += 1;
+                        if (current_image >= all_images.length)
+                            current_image = all_images.length-1;
+                        LoadCurrentImage();
+                    } else if (ImGui.IsKeyPressed(i) && i==17) { // ctrl
+                        if (io.MouseWheel > 0) {
+                            if (image_translation < 0) {
+                                image_translation += 90; 
+                                translate_updated = true;
+                            }
+                        } else if (io.MouseWheel < 0) {
+                            image_translation -= 90;
+                            translate_updated = true;
+                        }
+                    }
+                }
 
-                ImGui.SameLine();
-                if (ImGui.Button("Delete Landmarks")) {
-                    current_landmarks = []
-                    current_landmark_idx = 0;
-                    current_ocrs = [];
-                    current_ocr_idx = 0;
+
+                const input_image = STATIC("input_image", "0");
+                if (ImGui.InputText("##input_dataset", (value = input_image.value) => input_image.value = value)) {
+                    current_image = parseInt(input_image.value);
+                    if (current_image == current_image) {
+                        LoadCurrentImage();
+                    }
                     frame_updated = true;
                 }
-            }
 
-
-            if (ImGui.Checkbox("Scale Image to Window", (value = scale_image_to_window) => scale_image_to_window = value)) {
-                frame_updated = true;
-            }
-
-            const image_scale = STATIC("image_scale", 0.75);
-            ImGui.PushItemWidth(200);
-            if (ImGui.SliderFloat("##Image Scale", (value = image_scale.value) => image_scale.value = value, 0.1, 4.0, "Image Scale = %.3f")) {
-                scale_image_to_window = false;
-                frame_updated = true;
-            }
-
-            if (current_texture_image && current_texture_image.gl_texture) {
-                var im_cols = current_texture_image.width;
-                var im_rows = current_texture_image.height;
-
-                var scale = image_scale.value;
-                if (scale_image_to_window) {
-                    scale =  ImGui.GetContentRegionAvailWidth() / current_texture_image.width;
-                    if (scale > ImGui.GetContentRegionAvail().y / current_texture_image.height)
-                        scale = ImGui.GetContentRegionAvail().y / current_texture_image.height;
-
-                    if (scale*current_texture_image.width < 10) scale = 1;
-                }
-                var plot_width = Math.round(current_texture_image.width*scale);
-                var plot_height = Math.round(current_texture_image.height*scale);
-                var screen_pos = ImGui.GetCursorScreenPos();
-                // This invisible button prevents that we move the whole screen
-                // when clicking and dragging on the image.
-
-                if (ocrs_active == false) {
-                    ImGui.InvisibleButton("Annotation Button", new imgui_js_1.ImVec2(plot_width, plot_height));
-                    ImGui.SetCursorScreenPos(screen_pos);
-                    ImGui.Image(current_texture_image.gl_texture, new imgui_js_1.ImVec2(plot_width, plot_height));
-                }
-
-
-                const io = ImGui.GetIO();
+                
                 if (landmarks_active) {
-                    if (ImGui.IsMouseDragging()) {
-                        if (drag_status.dragging == false) {
-                            drag_status.dragging = true;
-                            drag_status.dx = drag_status.dy = 0;
+                    var num_landmarks_str = num_landmarks.toString();
+                    ImGui.PushItemWidth(30);
+                    ImGui.InputText("##input_landmarks_num", (value = num_landmarks_str) => num_landmarks_str = value);
+                    ImGui.SameLine();
+                    ImGui.Text("Landmarks Number");
+                    num_landmarks = parseInt(num_landmarks_str);
+
+                    ImGui.SameLine();
+                    if (ImGui.Button("Delete Landmarks")) {
+                        current_landmarks = []
+                        current_landmark_idx = 0;
+                        current_ocrs = [];
+                        current_ocr_idx = 0;
+                        frame_updated = true;
+                    }
+                }
+
+
+                if (ImGui.Checkbox("Scale Image to Window", (value = scale_image_to_window) => scale_image_to_window = value)) {
+                    frame_updated = true;
+                }
+
+                const image_scale = STATIC("image_scale", 0.75);
+                ImGui.PushItemWidth(200);
+                if (ImGui.SliderFloat("##Image Scale", (value = image_scale.value) => image_scale.value = value, 0.1, 4.0, "Image Scale = %.3f")) {
+                    scale_image_to_window = false;
+                    frame_updated = true;
+                }
+
+                if (current_texture_image && current_texture_image.gl_texture) {
+                    var im_cols = current_texture_image.width;
+                    var im_rows = current_texture_image.height;
+
+                    var scale = image_scale.value;
+                    if (scale_image_to_window) {
+                        scale =  ImGui.GetContentRegionAvailWidth() / current_texture_image.width;
+                        if (scale > ImGui.GetContentRegionAvail().y / current_texture_image.height)
+                            scale = ImGui.GetContentRegionAvail().y / current_texture_image.height;
+
+                        if (scale*current_texture_image.width < 10) scale = 1;
+                    }
+                    var plot_width = Math.round(current_texture_image.width*scale);
+                    var plot_height = Math.round(current_texture_image.height*scale);
+                    var screen_pos = ImGui.GetCursorScreenPos();
+                    // This invisible button prevents that we move the whole screen
+                    // when clicking and dragging on the image.
+
+                    if (ocrs_active == false) {
+                        ImGui.InvisibleButton("Annotation Button", new imgui_js_1.ImVec2(plot_width, plot_height));
+                        ImGui.SetCursorScreenPos(screen_pos);
+                        ImGui.Image(current_texture_image.gl_texture, new imgui_js_1.ImVec2(plot_width, plot_height));
+                    }
+
+
+                    if (landmarks_active) {
+                        if (ImGui.IsMouseDragging()) {
+                            if (drag_status.dragging == false) {
+                                drag_status.dragging = true;
+                                drag_status.dx = drag_status.dy = 0;
+                                    
+                                var closest_landmark =  GetClosestLandmark(
+                                                (io.MousePos.x-screen_pos.x)/scale-image_translation, 
+                                                (io.MousePos.y-screen_pos.y)/scale, 30/scale);
                                 
-                            var closest_landmark =  GetClosestLandmark(
-                                            (io.MousePos.x-screen_pos.x)/scale-image_translation, 
-                                            (io.MousePos.y-screen_pos.y)/scale, 30/scale);
+                                drag_status.landmark_idx = closest_landmark[0];
+                                drag_status.landmark_pt_idx = closest_landmark[1];
+                            }
                             
-                            drag_status.landmark_idx = closest_landmark[0];
-                            drag_status.landmark_pt_idx = closest_landmark[1];
-                        }
-                        
-                        var x = (io.MousePos.x-screen_pos.x)/scale-image_translation;
-                        var y = (io.MousePos.y-screen_pos.y)/scale;
-                        if( UpdateDraggingAnno(drag_status, x, y) )
-                            frame_updated = true;
-                    } 
-                    else { 
-                        if (drag_status.dragging) { // I'm stoping the dragging
-                            frame_updated = true;
-                            translate_updated = true;
-                            drag_status.landmark_idx = -1;
-                            drag_status.landmark_pt_idx = -1;
-                            drag_status.dragging = false;
+                            var x = (io.MousePos.x-screen_pos.x)/scale-image_translation;
+                            var y = (io.MousePos.y-screen_pos.y)/scale;
+                            if( UpdateDraggingAnno(drag_status, x, y) )
+                                frame_updated = true;
                         } 
-                        else { // normal case, there was no dragging on previous frame
-                            if (current_landmarks.length == 0)
-                                current_landmarks.push([]);
-                            
-                            if (current_landmarks[current_landmark_idx].length < num_landmarks) {
-                                for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++) {
-                                    if (ImGui.IsMouseReleased(i)) {
-                                        if ( (io.MousePos.x-screen_pos.x) >= 0 &&
-                                             (io.MousePos.y-screen_pos.y) >= 0 && 
-                                             (io.MousePos.x-screen_pos.x)/scale-image_translation <= im_cols &&
-                                             (io.MousePos.y-screen_pos.y)/scale <= im_rows) 
-                                        {
-                                            current_landmarks[current_landmark_idx].push(new Landmark(
-                                                    (io.MousePos.x-screen_pos.x)/scale-image_translation,
-                                                    (io.MousePos.y-screen_pos.y)/scale, "", -1));
-                                            frame_updated = true;
-                                            translate_updated = true;
-                                            if (current_landmarks[current_landmark_idx].length == num_landmarks) {
-                                                current_landmark_idx += 1;
-                                                current_landmarks.push([]);
+                        else { 
+                            if (drag_status.dragging) { // I'm stoping the dragging
+                                frame_updated = true;
+                                translate_updated = true;
+                                drag_status.landmark_idx = -1;
+                                drag_status.landmark_pt_idx = -1;
+                                drag_status.dragging = false;
+                            } 
+                            else { // normal case, there was no dragging on previous frame
+                                if (current_landmarks.length == 0)
+                                    current_landmarks.push([]);
+                                
+                                if (current_landmarks[current_landmark_idx].length < num_landmarks) {
+                                    for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++) {
+                                        if (ImGui.IsMouseReleased(i)) {
+                                            if ( (io.MousePos.x-screen_pos.x) >= 0 &&
+                                                 (io.MousePos.y-screen_pos.y) >= 0 && 
+                                                 (io.MousePos.x-screen_pos.x)/scale-image_translation <= im_cols &&
+                                                 (io.MousePos.y-screen_pos.y)/scale <= im_rows) 
+                                            {
+                                                current_landmarks[current_landmark_idx].push(new Landmark(
+                                                        (io.MousePos.x-screen_pos.x)/scale-image_translation,
+                                                        (io.MousePos.y-screen_pos.y)/scale, "", -1));
+                                                frame_updated = true;
+                                                translate_updated = true;
+                                                if (current_landmarks[current_landmark_idx].length == num_landmarks) {
+                                                    current_landmark_idx += 1;
+                                                    current_landmarks.push([]);
+                                                }
                                             }
                                         }
                                     }
@@ -1150,166 +1154,166 @@ System.register(["imgui-js", "./imgui_impl", "imgui-js/imgui_demo", "imgui-js/im
                             }
                         }
                     }
-                }
-                else if (bbox_active) {
-                    // if (ImGui.IsMouseDragging()) {
-                    //     console.log("Mouse is dragging");
-                    //     if (drag_status.dragging == false) {
-                    //         drag_status.dragging = true;
-                    //         drag_status.dx = drag_status.dy = 0;
-                    //             
-                    //         var closest_box =  GetClosestBox(
-                    //                         (io.MousePos.x-screen_pos.x)/scale, 
-                    //                         (io.MousePos.y-screen_pos.y)/scale, 30);
-                    //         
-                    //         drag_status.box_idx = closest_box[0];
-                    //         drag_status.box_pt_idx = closest_box[1];
-                    //     }
-                    //     
-                    //     var x = (io.MousePos.x-screen_pos.x)/scale;
-                    //     var y = (io.MousePos.y-screen_pos.y)/scale;
-                    //     if( UpdateDraggingBox(drag_status, x, y) )
-                    //         frame_updated = true;
-                    // } 
-                    // else { 
-                    //     if (drag_status.dragging) { // I'm stoping the dragging
-                    //         frame_updated = true;
-                    //         drag_status.box_idx = -1;
-                    //         drag_status.box_pt_idx = -1;
-                    //         drag_status.dragging = false;
-                    //     } 
-                    //     else { // normal case, there was no dragging on previous frame
-                    //         if (current_boxes.length == 0)
-                    //             current_boxes.push([]);
-                    //         
-                    //         if (current_boxes[current_box_idx].length < 4) {
-                    //             for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++) {
-                    //                 if (ImGui.IsMouseReleased(i)) {
-                    //                     if ( (io.MousePos.x-screen_pos.x) >= 0 &&
-                    //                          (io.MousePos.y-screen_pos.y) >= 0 && 
-                    //                          (io.MousePos.x-screen_pos.x)/scale <= im_cols &&
-                    //                          (io.MousePos.y-screen_pos.y)/scale <= im_rows) 
-                    //                     {
-                    //                         current_landmarks[current_landmark_idx].push(new Landmark(
-                    //                                 (io.MousePos.x-screen_pos.x)/scale,
-                    //                                 (io.MousePos.y-screen_pos.y)/scale));
-                    //                         frame_updated = true;
-                    //                         if (current_landmarks[current_landmark_idx].length == num_landmarks) {
-                    //                             current_landmark_idx += 1;
-                    //                             current_landmarks.push([]);
-                    //                         }
-                    //                     }
-                    //                 }
-                    //             }
-                    //         }
-                    //     }
-                    // }
+                    else if (bbox_active) {
+                        // if (ImGui.IsMouseDragging()) {
+                        //     console.log("Mouse is dragging");
+                        //     if (drag_status.dragging == false) {
+                        //         drag_status.dragging = true;
+                        //         drag_status.dx = drag_status.dy = 0;
+                        //             
+                        //         var closest_box =  GetClosestBox(
+                        //                         (io.MousePos.x-screen_pos.x)/scale, 
+                        //                         (io.MousePos.y-screen_pos.y)/scale, 30);
+                        //         
+                        //         drag_status.box_idx = closest_box[0];
+                        //         drag_status.box_pt_idx = closest_box[1];
+                        //     }
+                        //     
+                        //     var x = (io.MousePos.x-screen_pos.x)/scale;
+                        //     var y = (io.MousePos.y-screen_pos.y)/scale;
+                        //     if( UpdateDraggingBox(drag_status, x, y) )
+                        //         frame_updated = true;
+                        // } 
+                        // else { 
+                        //     if (drag_status.dragging) { // I'm stoping the dragging
+                        //         frame_updated = true;
+                        //         drag_status.box_idx = -1;
+                        //         drag_status.box_pt_idx = -1;
+                        //         drag_status.dragging = false;
+                        //     } 
+                        //     else { // normal case, there was no dragging on previous frame
+                        //         if (current_boxes.length == 0)
+                        //             current_boxes.push([]);
+                        //         
+                        //         if (current_boxes[current_box_idx].length < 4) {
+                        //             for (let i = 0; i < ImGui.IM_ARRAYSIZE(io.MouseDown); i++) {
+                        //                 if (ImGui.IsMouseReleased(i)) {
+                        //                     if ( (io.MousePos.x-screen_pos.x) >= 0 &&
+                        //                          (io.MousePos.y-screen_pos.y) >= 0 && 
+                        //                          (io.MousePos.x-screen_pos.x)/scale <= im_cols &&
+                        //                          (io.MousePos.y-screen_pos.y)/scale <= im_rows) 
+                        //                     {
+                        //                         current_landmarks[current_landmark_idx].push(new Landmark(
+                        //                                 (io.MousePos.x-screen_pos.x)/scale,
+                        //                                 (io.MousePos.y-screen_pos.y)/scale));
+                        //                         frame_updated = true;
+                        //                         if (current_landmarks[current_landmark_idx].length == num_landmarks) {
+                        //                             current_landmark_idx += 1;
+                        //                             current_landmarks.push([]);
+                        //                         }
+                        //                     }
+                        //                 }
+                        //             }
+                        //         }
+                        //     }
+                        // }
 
-                    console.log("Code to anno bounding box");
-                } else if(ocrs_active) { 
-                    if (ImGui.Button("Transorm Landmarks in OCRs")) {
-                        var id = all_datasets[current_dataset]["id"].toString();
-                        TransformLandmarksInOCR(id);
-                    }
-
-                    const ocr_height = STATIC("ocr_height", 200);
-                    var window_width = ImGui.GetContentRegionAvailWidth();
-                    ImGui.PushItemWidth(200);
-                    if (ImGui.SliderInt("##OCR Height", (value = ocr_height.value) => ocr_height.value = value, 80, 400, "OCR Height = %d")) {
-                        scale_image_to_window = false;
-                        frame_updated = true;
-                    }
-                    ImGui.PopItemWidth();
-
-                    var current_width = 0; // keeps the current line width in pixels so that we
-                                           // we can know when to draw on a new line
-                    var ocr_scale = 1.0;
-                    var first_ocr = 0; // saves the first OCR index of the current line. This is
-                                       // needed to 
-                    for (let i=0; i<current_ocrs.length; i++) {
-                        if (current_ocrs[i].image.width < 10) {
-                            continue;
-                        }
-                        
-                        var width = current_ocrs[i].image.width;
-                        var height = current_ocrs[i].image.height;
-                        ocr_scale = (ocr_height.value-25)/height;
-                        current_width += Math.round(width*ocr_scale);
-
-                        // Draw the current image
-                        ImGui.Image(current_ocrs[i].image.gl_texture, new imgui_js_1.ImVec2(Math.round(width*ocr_scale), Math.round(height*ocr_scale)));
-                       
-                        // Check the next image to see if it will be on the same line or
-                        // in a newer one
-                        var new_width = 0;
-                        if (i < current_ocrs.length-1) {
-                            var current_scale = (ocr_height.value-25)/current_ocrs[i+1].image.height;
-                            new_width = Math.round(current_ocrs[i+1].image.width*current_scale);
+                        console.log("Code to anno bounding box");
+                    } else if(ocrs_active) { 
+                        if (ImGui.Button("Transorm Landmarks in OCRs")) {
+                            var id = all_datasets[current_dataset]["id"].toString();
+                            TransformLandmarksInOCR(id);
                         }
 
-                        // If we cant fill the next image on this line or this is already the last image
-                        if (current_width+new_width >= window_width || i == current_ocrs.length-1) {
-                            // The current width is updated for the next image
-                            current_width = new_width;
-                            // Plot all the ocrs of this line
-                            for (let j=first_ocr; j<=i; j++) {
-                                var current_scale = (ocr_height.value-25)/current_ocrs[j].image.height;
-                                ImGui.PushItemWidth(Math.round(current_ocrs[j].image.width*current_scale));
-                                ImGui.InputText("##ocr"+j.toString(), (value = current_ocrs[j].label) => current_ocrs[j].label = value);
-                                ImGui.PopItemWidth();
-                                // On the last position do not call SameLine. This will make
-                                // the next GUI elemnt to be on a new line
-                                if (j != i) {
-                                    ImGui.SameLine();
-                                }
-                            }
-                            first_ocr = i+1;
-                        } else {
-                            ImGui.SameLine();
+                        const ocr_height = STATIC("ocr_height", 200);
+                        var window_width = ImGui.GetContentRegionAvailWidth();
+                        ImGui.PushItemWidth(200);
+                        if (ImGui.SliderInt("##OCR Height", (value = ocr_height.value) => ocr_height.value = value, 80, 400, "OCR Height = %d")) {
+                            scale_image_to_window = false;
+                            frame_updated = true;
                         }
-                    }
-                }
+                        ImGui.PopItemWidth();
 
-                if (screen_pos == screen_pos && (frame_updated || translate_updated)) {
-                    const gl = ImGui_Impl.gl;
-                    var pixels;
-                    if (translate_updated || frame_updated) {
-                        pixels = TranslatePixels(current_texture_image);
-                    } else {
-                        pixels = GetOriginalPixels(current_texture_image);
-                    }
-
-                    for (let i=0; i<current_landmarks.length; i++) {
-                        for (let j=0; j<current_landmarks[i].length; j++) {
-                            DrawPoint(current_texture_image, pixels, current_landmarks[i][j].x+image_translation, current_landmarks[i][j].y, plot_width, plot_height, 4, false);
-                            var j2 = j+1;                            
-                            if (j2 >= num_landmarks) 
-                                j2 = 0;
-                            if (j2 >= current_landmarks[i].length)
+                        var current_width = 0; // keeps the current line width in pixels so that we
+                                               // we can know when to draw on a new line
+                        var ocr_scale = 1.0;
+                        var first_ocr = 0; // saves the first OCR index of the current line. This is
+                                           // needed to 
+                        for (let i=0; i<current_ocrs.length; i++) {
+                            if (current_ocrs[i].image.width < 10) {
                                 continue;
+                            }
                             
-                            DrawLine (current_landmarks[i][j].x+image_translation, current_landmarks[i][j].y, 
-                                    current_landmarks[i][j2].x+image_translation, current_landmarks[i][j2].y,
-                                    pixels, current_texture_image, 
-                                    plot_width, plot_height, 4, colors[i%colors.length]);
-                        }
-                        for (let j=0; j<current_landmarks[i].length; j++) {
-                            DrawPoint(current_texture_image, pixels, current_landmarks[i][j].x+image_translation, current_landmarks[i][j].y, plot_width, plot_height, 4, false);
+                            var width = current_ocrs[i].image.width;
+                            var height = current_ocrs[i].image.height;
+                            ocr_scale = (ocr_height.value-25)/height;
+                            current_width += Math.round(width*ocr_scale);
+
+                            // Draw the current image
+                            ImGui.Image(current_ocrs[i].image.gl_texture, new imgui_js_1.ImVec2(Math.round(width*ocr_scale), Math.round(height*ocr_scale)));
+                           
+                            // Check the next image to see if it will be on the same line or
+                            // in a newer one
+                            var new_width = 0;
+                            if (i < current_ocrs.length-1) {
+                                var current_scale = (ocr_height.value-25)/current_ocrs[i+1].image.height;
+                                new_width = Math.round(current_ocrs[i+1].image.width*current_scale);
+                            }
+
+                            // If we cant fill the next image on this line or this is already the last image
+                            if (current_width+new_width >= window_width || i == current_ocrs.length-1) {
+                                // The current width is updated for the next image
+                                current_width = new_width;
+                                // Plot all the ocrs of this line
+                                for (let j=first_ocr; j<=i; j++) {
+                                    var current_scale = (ocr_height.value-25)/current_ocrs[j].image.height;
+                                    ImGui.PushItemWidth(Math.round(current_ocrs[j].image.width*current_scale));
+                                    ImGui.InputText("##ocr"+j.toString(), (value = current_ocrs[j].label) => current_ocrs[j].label = value);
+                                    ImGui.PopItemWidth();
+                                    // On the last position do not call SameLine. This will make
+                                    // the next GUI elemnt to be on a new line
+                                    if (j != i) {
+                                        ImGui.SameLine();
+                                    }
+                                }
+                                first_ocr = i+1;
+                            } else {
+                                ImGui.SameLine();
+                            }
                         }
                     }
 
-                    UpdateTexture(current_texture_image, pixels, gl);
-                    // Did I updated the correct frame or the image is not loaded yet?
-                    if (current_texture_image.width > 10) {
-                        frame_updated = false;
-                        translate_updated = false;
+                    if (screen_pos == screen_pos && (frame_updated || translate_updated)) {
+                        const gl = ImGui_Impl.gl;
+                        var pixels;
+                        if (translate_updated || frame_updated) {
+                            pixels = TranslatePixels(current_texture_image);
+                        } else {
+                            pixels = GetOriginalPixels(current_texture_image);
+                        }
+
+                        for (let i=0; i<current_landmarks.length; i++) {
+                            for (let j=0; j<current_landmarks[i].length; j++) {
+                                DrawPoint(current_texture_image, pixels, current_landmarks[i][j].x+image_translation, current_landmarks[i][j].y, plot_width, plot_height, 4, false);
+                                var j2 = j+1;                            
+                                if (j2 >= num_landmarks) 
+                                    j2 = 0;
+                                if (j2 >= current_landmarks[i].length)
+                                    continue;
+                                
+                                DrawLine (current_landmarks[i][j].x+image_translation, current_landmarks[i][j].y, 
+                                        current_landmarks[i][j2].x+image_translation, current_landmarks[i][j2].y,
+                                        pixels, current_texture_image, 
+                                        plot_width, plot_height, 4, colors[i%colors.length]);
+                            }
+                            for (let j=0; j<current_landmarks[i].length; j++) {
+                                DrawPoint(current_texture_image, pixels, current_landmarks[i][j].x+image_translation, current_landmarks[i][j].y, plot_width, plot_height, 4, false);
+                            }
+                        }
+
+                        UpdateTexture(current_texture_image, pixels, gl);
+                        // Did I updated the correct frame or the image is not loaded yet?
+                        if (current_texture_image.width > 10) {
+                            frame_updated = false;
+                            translate_updated = false;
+                        }
                     }
+
                 }
-
             }
-            ImGui.End();
         }
 
+        ImGui.End();
 
 
         ImGui.EndFrame();
